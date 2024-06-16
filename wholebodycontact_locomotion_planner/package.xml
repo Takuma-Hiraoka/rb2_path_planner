@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>wholebodycontact_locomotion_planner_sample</name>
+  <name>wholebodycontact_locomotion_planner</name>
   <version>0.0.0</version>
-  <description>The wholebodycontact_locomotion_planner_sample package</description>
+  <description>The wholebodycontact_locomotion_planner package</description>
 
   <maintainer email="t-hiraoka@jsk.imi.i.u-tokyo.ac.jp">Takuma-Hiraoka</maintainer>
 
@@ -11,9 +11,10 @@
   <author email="t-hiraoka@jsk.imi.i.u-tokyo.ac.jp">Takuma-Hiraoka</author>
 
   <buildtool_depend>catkin</buildtool_depend>
-  <depend>wholebodycontact_locomotion_planner</depend>
   <depend>choreonoid</depend>
   <depend>choreonoid_viewer</depend>
-  <depend>choreonoid_qhull</depend>
+  <depend>ik_constraint2</depend>
+  <depend>ik_constraint2_distance_field</depend>
+  <depend>ik_constraint2_bullet</depend>
 
 </package>

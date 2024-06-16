@@ -9,7 +9,9 @@
 namespace wholebodycontact_locomotion_planner_sample{
   void sample0_display(){
     cnoid::BodyPtr obstacle;
-    generateStepWorld(obstacle);
+    std::shared_ptr<wholebodycontact_locomotion_planner::Environment> environment;
+    generateStepWorld(obstacle, environment);
+
     cnoid::BodyPtr robot;
     cnoid::BodyPtr abstractRobot;
     generateSampleRobot(robot, abstractRobot);
@@ -19,6 +21,7 @@ namespace wholebodycontact_locomotion_planner_sample{
     viewer->objects(robot);
     viewer->objects(abstractRobot);
     viewer->objects(obstacle);
+    viewer->objects(environment->surfacesBody);
 
     viewer->drawObjects();
   }

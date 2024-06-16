@@ -5,6 +5,7 @@ add_compile_options(-std=c++14)
 set(CMAKE_BUILD_TYPE Release)
 
 find_package(catkin REQUIRED COMPONENTS
+  wholebodycontact_locomotion_planner
   choreonoid_viewer
   choreonoid_qhull
   roslib
