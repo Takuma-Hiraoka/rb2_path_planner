@@ -15,5 +15,7 @@
   <depend>choreonoid</depend>
   <depend>choreonoid_viewer</depend>
   <depend>choreonoid_qhull</depend>
+  <depend>choreonoid_bullet</depend>
+  <depend>choreonoid_cddlib</depend>
 
 </package>

@@ -2,6 +2,7 @@
 #define WHOLEBODYCONTACT_LOCOMOTION_PLANNER_ROBOTSTATE_H
 
 #include <cnoid/Body>
+#include <ik_constraint2/ik_constraint2.h>
 #include <ik_constraint2_distance_field/ik_constraint2_distance_field.h>
 #include <ik_constraint2_bullet/ik_constraint2_bullet.h>
 
@@ -32,6 +33,16 @@ namespace wholebodycontact_locomotion_planner {
     std::vector<ContactableRegion> surfaces;
     cnoid::BodyPtr surfacesBody = new cnoid::Body();
     std::vector<std::shared_ptr<btConvexShape> > surfacesBulletModel; // rootLinkに対応
+  };
+
+  class Mode {
+  public:
+    std::string name;
+    double score = 1.0; // 大きい方を好む
+
+    std::vector<std::shared_ptr<ik_constraint2_bullet::BulletKeepCollisionConstraint> > reachabilityConstraints;
+    std::vector<std::shared_ptr<ik_constraint2_distance_field::DistanceFieldCollisionConstraint> > collisionConstraints;
+    std::shared_ptr<ik_constraint2::IKConstraint> generateCondition(const std::shared_ptr<Environment>& environment);
   };
 }
 

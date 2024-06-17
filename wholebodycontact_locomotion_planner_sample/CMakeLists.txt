@@ -8,6 +8,8 @@ find_package(catkin REQUIRED COMPONENTS
   wholebodycontact_locomotion_planner
   choreonoid_viewer
   choreonoid_qhull
+  choreonoid_bullet
+  choreonoid_cddlib
   roslib
   )
 
@@ -27,6 +29,7 @@ add_library(CnoidWholeBodyContactLocomotionPlannerSamplePlugin SHARED
   src/samplerobot_common.cpp
   src/world_common.cpp
   src/sample0_display.cpp
+  src/sample1_walk.cpp
   )
 target_link_libraries(CnoidWholeBodyContactLocomotionPlannerSamplePlugin
   ${catkin_LIBRARIES}

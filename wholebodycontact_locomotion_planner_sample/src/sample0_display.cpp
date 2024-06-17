@@ -12,13 +12,13 @@ namespace wholebodycontact_locomotion_planner_sample{
     std::shared_ptr<wholebodycontact_locomotion_planner::Environment> environment;
     generateStepWorld(obstacle, environment);
 
-    cnoid::BodyPtr robot;
+    std::shared_ptr<wholebodycontact_locomotion_planner::WBLPParam> param = std::make_shared<wholebodycontact_locomotion_planner::WBLPParam>();
     cnoid::BodyPtr abstractRobot;
-    generateSampleRobot(robot, abstractRobot);
+    generateSampleRobot(environment->obstacles, param, abstractRobot);
 
     // setup viewer
     std::shared_ptr<choreonoid_viewer::Viewer> viewer = std::make_shared<choreonoid_viewer::Viewer>();
-    viewer->objects(robot);
+    viewer->objects(param->robot);
     viewer->objects(abstractRobot);
     viewer->objects(obstacle);
     viewer->objects(environment->surfacesBody);

@@ -13,8 +13,10 @@
   <buildtool_depend>catkin</buildtool_depend>
   <depend>choreonoid</depend>
   <depend>choreonoid_viewer</depend>
+  <depend>choreonoid_cddlib</depend>
   <depend>ik_constraint2</depend>
   <depend>ik_constraint2_distance_field</depend>
   <depend>ik_constraint2_bullet</depend>
+  <depend>global_inverse_kinematics_solver</depend>
 
 </package>

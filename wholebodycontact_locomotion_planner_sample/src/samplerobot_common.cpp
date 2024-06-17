@@ -4,6 +4,8 @@
 #include <ros/package.h>
 #include <iostream>
 #include <choreonoid_qhull/choreonoid_qhull.h>
+#include <choreonoid_bullet/choreonoid_bullet.h>
+#include <choreonoid_cddlib/choreonoid_cddlib.h>
 #include <cnoid/MeshExtractor>
 
 namespace wholebodycontact_locomotion_planner_sample{
@@ -45,16 +47,17 @@ namespace wholebodycontact_locomotion_planner_sample{
     return model;
   }
 
-  void generateSampleRobot(cnoid::BodyPtr& robot,
-                           cnoid::BodyPtr& abstractRobot
+  void generateSampleRobot(const std::shared_ptr<moveit_extensions::InterpolatedPropagationDistanceField>& field,
+                           std::shared_ptr<wholebodycontact_locomotion_planner::WBLPParam>& param,
+                           cnoid::BodyPtr& abstractRobot // for visual
                            ) {
     cnoid::BodyLoader bodyLoader;
-    robot = bodyLoader.load(ros::package::getPath("choreonoid") + "/share/model/SR1/SR1.body");
+    param->robot = bodyLoader.load(ros::package::getPath("choreonoid") + "/share/model/SR1/SR1.body");
 
-    robot->rootLink()->p() = cnoid::Vector3(0,0,0.65);
-    robot->rootLink()->v().setZero();
-    robot->rootLink()->R() = cnoid::Matrix3::Identity();
-    robot->rootLink()->w().setZero();
+    param->robot->rootLink()->p() = cnoid::Vector3(0,0,0.67);//cnoid::Vector3(0,0,0.65); // TODO 接触点をsolve内で離すこと. そうしないと始めにsatisfiedにならない
+    param->robot->rootLink()->v().setZero();
+    param->robot->rootLink()->R() = cnoid::Matrix3::Identity();
+    param->robot->rootLink()->w().setZero();
 
     std::vector<double> reset_manip_pose{
       0.0, -0.349066, 0.0, 0.820305, -0.471239, 0.0,// rleg
@@ -62,27 +65,46 @@ namespace wholebodycontact_locomotion_planner_sample{
         0.0, -0.349066, 0.0, 0.820305, -0.471239, 0.0,// lleg
         0.523599, 0.0, 0.0, -1.74533, -0.15708, -0.113446, -0.637045,// larm
         0.1, 0.0, 0.0}; // torso. waist-pを少し前に傾けておくと、後ろにひっくり返りにくくなる
-    for(int j=0; j < robot->numJoints(); ++j){
-      robot->joint(j)->q() = reset_manip_pose[j];
+    for(int j=0; j < param->robot->numJoints(); ++j){
+      param->robot->joint(j)->q() = reset_manip_pose[j];
     }
 
-    robot->calcForwardKinematics();
-    robot->calcCenterOfMass();
+    param->robot->calcForwardKinematics();
+    param->robot->calcCenterOfMass();
 
-    abstractRobot = robot->clone();
+    {
+      // variables
+      param->variables.push_back(param->robot->rootLink());
+      for(int i=0;i<param->robot->numJoints();i++){
+        param->variables.push_back(param->robot->joint(i));
+      }
+    }
+
+    {
+      // task: nominal constairnt
+      for(int i=0;i<param->robot->numJoints();i++){
+        std::shared_ptr<ik_constraint2::JointAngleConstraint> constraint = std::make_shared<ik_constraint2::JointAngleConstraint>();
+        constraint->joint() = param->robot->joint(i);
+        constraint->targetq() = reset_manip_pose[i];
+        constraint->precision() = 1e10; // always satisfied
+        param->nominals.push_back(constraint);
+      }
+    }
+
+    abstractRobot = param->robot->clone();
     {
       cnoid::Affine3 transform = cnoid::Affine3::Identity();
       transform.linear() *= 1.2;
       for (int i=0; i<abstractRobot->numLinks(); i++) {
         // 拡大凸包meshを作る
-        cnoid::SgNodePtr collisionshape = robot->link(i)->collisionShape();
+        cnoid::SgNodePtr collisionshape = param->robot->link(i)->collisionShape();
         Eigen::Matrix<double,3,Eigen::Dynamic> vertices;
         if (collisionshape) {
           cnoid::SgMeshPtr model = convertToSgMesh(collisionshape); // まずmeshに変換
           // 拡大
           {
             for (int v=0; v<model->vertices()->size(); v++) {
-              model->vertices()->at(v) += model->vertices()->at(v).cast<cnoid::Vector3f::Scalar>() / (model->vertices()->at(v).cast<cnoid::Vector3f::Scalar>()).norm() * 0.03;
+              model->vertices()->at(v) += model->vertices()->at(v).cast<cnoid::Vector3f::Scalar>() / (model->vertices()->at(v).cast<cnoid::Vector3f::Scalar>()).norm() * 0.1;
             }
           }
           // 凸包
@@ -104,14 +126,54 @@ namespace wholebodycontact_locomotion_planner_sample{
         shape->setMaterial(material);
         if(shape) shape->setName(collisionshape->name());
         if(shape){
-          robot->link(i)->clearShapeNodes();
-          robot->link(i)->addVisualShapeNode(shape);
-          robot->link(i)->addCollisionShapeNode(shape);
+          abstractRobot->link(i)->clearShapeNodes();
+          abstractRobot->link(i)->addVisualShapeNode(shape);
+          abstractRobot->link(i)->addCollisionShapeNode(shape);
         }else{
-          std::cerr << __PRETTY_FUNCTION__ << " convex hull " << robot->link(i)->name() << " fail" << std::endl;
+          std::cerr << __PRETTY_FUNCTION__ << " convex hull " << abstractRobot->link(i)->name() << " fail" << std::endl;
         }
 
       }
-    }
+    } // abstractRobot
+
+    param->modes.clear();
+    {
+      std::shared_ptr<wholebodycontact_locomotion_planner::Mode> mode = std::make_shared<wholebodycontact_locomotion_planner::Mode>();
+      param->modes["wholebody"] = mode;
+      mode->score = 2.0;
+      {
+        // reachability
+        for (int i=0; i<param->robot->numLinks(); i++) {
+          std::shared_ptr<ik_constraint2_bullet::BulletKeepCollisionConstraint> constraint = std::make_shared<ik_constraint2_bullet::BulletKeepCollisionConstraint>();
+          constraint->A_link() = param->robot->link(i);
+          constraint->A_link_bulletModel() = constraint->A_link();
+          constraint->A_bulletModel() = choreonoid_bullet::convertToBulletModels(abstractRobot->link(i)->collisionShape());
+          constraint->B_link() = constraint->A_link(); // dummy. solve時にenvironmentから設定し直す
+          constraint->precision() = 0.01;
+          constraint->A_FACE_C().resize(1); constraint->A_FACE_dl().resize(1); constraint->A_FACE_du().resize(1);
+          choreonoid_cddlib::convertToFACEExpression(constraint->A_link()->collisionShape(),
+                                                     constraint->A_FACE_C()[0],
+                                                     constraint->A_FACE_dl()[0],
+                                                     constraint->A_FACE_du()[0]);
+          constraint->B_FACE_C() = constraint->A_FACE_C();
+          constraint->B_FACE_dl() = constraint->A_FACE_dl();
+          constraint->B_FACE_du() = constraint->A_FACE_du();
+          constraint->debugLevel() = 0;
+          constraint->updateBounds(); // キャッシュを内部に作る.
+          mode->reachabilityConstraints.push_back(constraint);
+        }
+        // environmental collision
+        for (int i=0; i<param->robot->numLinks(); i++) {
+          std::shared_ptr<ik_constraint2_distance_field::DistanceFieldCollisionConstraint> constraint = std::make_shared<ik_constraint2_distance_field::DistanceFieldCollisionConstraint>();
+          constraint->A_link() = param->robot->link(i);
+          constraint->field() = field;
+          constraint->tolerance() = 0.05; // ちょうど干渉すると法線ベクトルが変になることがあるので, 1回のiterationで動きうる距離よりも大きくせよ.
+          constraint->precision() = 0.04; // 角で不正確になりがちなので, toleranceを大きくしてprecisionも大きくして、best effort的にする. precisionはdistanceFieldのサイズの倍数より大きくする
+          constraint->ignoreDistance() = 0.5; // rbrttは大きく動くので、ignoreも大きくする必要がある
+          constraint->updateBounds(); // キャッシュを内部に作る. キャッシュを作ったあと、10スレッドぶんコピーする方が速い
+          mode->collisionConstraints.push_back(constraint);
+        }
+      }
+    } // mode1
   }
 }

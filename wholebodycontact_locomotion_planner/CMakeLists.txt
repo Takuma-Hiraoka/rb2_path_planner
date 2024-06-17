@@ -9,6 +9,8 @@ find_package(catkin REQUIRED COMPONENTS
   ik_constraint2
   ik_constraint2_distance_field
   ik_constraint2_bullet
+  choreonoid_cddlib
+  global_inverse_kinematics_solver
   )
 
 find_package(choreonoid REQUIRED)
@@ -16,7 +18,7 @@ find_package(choreonoid REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES wholebodycontact_locomotion_planner
-  CATKIN_DEPENDS ik_constraint2 ik_constraint2_distance_field ik_constraint2_bullet
+  CATKIN_DEPENDS ik_constraint2 ik_constraint2_distance_field ik_constraint2_bullet choreonoid_cddlib global_inverse_kinematics_solver
   )
 
 include_directories(
@@ -27,6 +29,7 @@ include_directories(
 
 add_library(${PROJECT_NAME}
   src/RobotState.cpp
+  src/wholebodycontact_locomotion_planner.cpp
   )
 
 target_link_libraries(${PROJECT_NAME}
