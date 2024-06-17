@@ -8,6 +8,8 @@ namespace wholebodycontact_locomotion_planner_sample{
 
   void generateStepWorld(cnoid::BodyPtr& obstacle, // for visual
                          std::shared_ptr<wholebodycontact_locomotion_planner::Environment>& environment);
+  void generateTunnelWorld(cnoid::BodyPtr& obstacle, // for visual
+                         std::shared_ptr<wholebodycontact_locomotion_planner::Environment>& environment);
 
 };
 

@@ -7,10 +7,10 @@
 #include "world_common.h"
 
 namespace wholebodycontact_locomotion_planner_sample{
-  void sample1_walk(){
+  void sample2_tunnel(){
     cnoid::BodyPtr obstacle;
     std::shared_ptr<wholebodycontact_locomotion_planner::Environment> environment;
-    generateStepWorld(obstacle, environment);
+    generateTunnelWorld(obstacle, environment);
 
     std::shared_ptr<wholebodycontact_locomotion_planner::WBLPParam> param = std::make_shared<wholebodycontact_locomotion_planner::WBLPParam>();
     cnoid::BodyPtr abstractRobot;
@@ -25,11 +25,15 @@ namespace wholebodycontact_locomotion_planner_sample{
 
     viewer->drawObjects();
 
-    param->gikRootParam.range = 2.0;
+    param->gikRootParam.range = 0.05;
+    param->gikRootParam.timeout = 30;
+    param->gikRootParam.viewer = viewer;
+    param->gikRootParam.drawLoop = 1;
+    param->gikRootParam.debugLevel = 0;
 
     cnoid::Isometry3 goal = param->robot->rootLink()->T();
-    goal.translation()[0] += 1.5;
-    goal.translation()[2] += 0.35;
+    goal.translation()[0] += 3.3;
+    goal.translation()[2] -= 0.2;
 
     std::vector<std::vector<double> > path;
 

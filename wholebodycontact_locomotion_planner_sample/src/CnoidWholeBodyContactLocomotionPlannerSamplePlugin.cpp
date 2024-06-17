@@ -22,6 +22,15 @@ namespace wholebodycontact_locomotion_planner_sample{
   };
   typedef cnoid::ref_ptr<sample1_walkItem> sample1_walkItemPtr;
 
+  void sample2_tunnel();
+  class sample2_tunnelItem : public choreonoid_viewer::ViewerBaseItem {
+  public:
+    static void initializeClass(cnoid::ExtensionManager* ext){ ext->itemManager().registerClass<sample2_tunnelItem>("sample2_tunnelItem"); }
+  protected:
+    virtual void main() override{ sample2_tunnel(); return;}
+  };
+  typedef cnoid::ref_ptr<sample2_tunnelItem> sample2_tunnelItemPtr;
+
   class WholeBodyContactLocomotionPlannerSamplePlugin : public cnoid::Plugin
   {
   public:
@@ -33,6 +42,7 @@ namespace wholebodycontact_locomotion_planner_sample{
     {
       sample0_displayItem::initializeClass(this);
       sample1_walkItem::initializeClass(this);
+      sample2_tunnelItem::initializeClass(this);
       return true;
     }
   };

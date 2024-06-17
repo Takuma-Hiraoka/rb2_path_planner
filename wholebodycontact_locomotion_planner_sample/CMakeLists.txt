@@ -30,6 +30,7 @@ add_library(CnoidWholeBodyContactLocomotionPlannerSamplePlugin SHARED
   src/world_common.cpp
   src/sample0_display.cpp
   src/sample1_walk.cpp
+  src/sample2_tunnel.cpp
   )
 target_link_libraries(CnoidWholeBodyContactLocomotionPlannerSamplePlugin
   ${catkin_LIBRARIES}

@@ -17,7 +17,7 @@ namespace wholebodycontact_locomotion_planner{
     global_inverse_kinematics_solver::GIKParam gikRootParam;
 
     WBLPParam() {
-      gikRootParam.range = 2.0;
+      gikRootParam.range = 0.05; //大きすぎるとめり込む. 0.03は小さすぎて遅い
       gikRootParam.delta = 0.2;
       gikRootParam.timeout = 20;
       gikRootParam.maxTranslation = 3;
