@@ -26,6 +26,11 @@ namespace wholebodycontact_locomotion_planner_sample{
     viewer->drawObjects();
 
     param->gikRootParam.range = 2.0;
+    param->gikRootParam.viewer = viewer;
+    param->gikRootParam.drawLoop = 1;
+    param->gikRootParam.debugLevel = 2;
+    param->gikRootParam.timeout = 60;
+    param->gikRootParam.goalBias = 0.4;
 
     cnoid::Isometry3 goal = param->robot->rootLink()->T();
     goal.translation()[0] += 1.5;

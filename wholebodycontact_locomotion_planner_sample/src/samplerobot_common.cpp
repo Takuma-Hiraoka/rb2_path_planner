@@ -104,7 +104,7 @@ namespace wholebodycontact_locomotion_planner_sample{
           // 拡大
           {
             for (int v=0; v<model->vertices()->size(); v++) {
-              model->vertices()->at(v) += model->vertices()->at(v).cast<cnoid::Vector3f::Scalar>() / (model->vertices()->at(v).cast<cnoid::Vector3f::Scalar>()).norm() * 0.05;
+              model->vertices()->at(v) += model->vertices()->at(v).cast<cnoid::Vector3f::Scalar>() / (model->vertices()->at(v).cast<cnoid::Vector3f::Scalar>()).norm() * 0.2;
             }
           }
           // 凸包

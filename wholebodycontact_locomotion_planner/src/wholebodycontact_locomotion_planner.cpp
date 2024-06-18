@@ -60,7 +60,7 @@ namespace wholebodycontact_locomotion_planner{
 
     std::shared_ptr<ik_constraint2::ORConstraint> conditions = std::make_shared<ik_constraint2::ORConstraint>();
     for(std::unordered_map<std::string, std::shared_ptr<Mode> >::const_iterator it=param->modes.begin(); it!=param->modes.end(); it++){
-      conditions->children().push_back(it->second->generateCondition(environment));
+      conditions->children().push_back(it->second->generateCondition(environment, param->robot));
     }
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints1{conditions};
     constraints.push_back(constraints1);

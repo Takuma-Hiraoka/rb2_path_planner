@@ -1,8 +1,9 @@
 #include <wholebodycontact_locomotion_planner/RobotState.h>
 #include <choreonoid_cddlib/choreonoid_cddlib.h>
+#include <ik_constraint2_scfr/KeepCollisionScfrConstraint.h>
 
 namespace wholebodycontact_locomotion_planner {
-  std::shared_ptr<ik_constraint2::IKConstraint> Mode::generateCondition(const std::shared_ptr<Environment>& environment){
+  std::shared_ptr<ik_constraint2::IKConstraint> Mode::generateCondition(const std::shared_ptr<Environment>& environment, const cnoid::BodyPtr& robot){
     std::shared_ptr<ik_constraint2::ANDConstraint> conditions = std::make_shared<ik_constraint2::ANDConstraint>();
     //conditions->debugLevel() = 2;
     for(int i=0;i<this->collisionConstraints.size();i++){
@@ -23,6 +24,13 @@ namespace wholebodycontact_locomotion_planner {
       reachabilityConditions->children().push_back(constraint);
     }
     conditions->children().push_back(reachabilityConditions);
+
+    std::shared_ptr<ik_constraint2_keep_collision_scfr::KeepCollisionScfrConstraint> scfrConstraint = std::make_shared<ik_constraint2_keep_collision_scfr::KeepCollisionScfrConstraint>();
+    for(int i=0;i<this->reachabilityConstraints.size();i++){
+      scfrConstraint->A_robot() = robot;
+      scfrConstraint->keepCollisionConstraints().push_back(this->reachabilityConstraints[i]);
+    }
+    conditions->children().push_back(scfrConstraint);
     return conditions;
   }
 }

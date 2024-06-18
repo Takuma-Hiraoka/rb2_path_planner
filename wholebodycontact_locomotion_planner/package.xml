@@ -18,5 +18,6 @@
   <depend>ik_constraint2_distance_field</depend>
   <depend>ik_constraint2_bullet</depend>
   <depend>global_inverse_kinematics_solver</depend>
+  <depend>ik_constraint2_scfr</depend>
 
 </package>

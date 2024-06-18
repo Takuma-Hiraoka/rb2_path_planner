@@ -42,7 +42,7 @@ namespace wholebodycontact_locomotion_planner {
 
     std::vector<std::shared_ptr<ik_constraint2_bullet::BulletKeepCollisionConstraint> > reachabilityConstraints;
     std::vector<std::shared_ptr<ik_constraint2_distance_field::DistanceFieldCollisionConstraint> > collisionConstraints;
-    std::shared_ptr<ik_constraint2::IKConstraint> generateCondition(const std::shared_ptr<Environment>& environment);
+    std::shared_ptr<ik_constraint2::IKConstraint> generateCondition(const std::shared_ptr<Environment>& environment, const cnoid::BodyPtr& robot);
   };
 }
 
