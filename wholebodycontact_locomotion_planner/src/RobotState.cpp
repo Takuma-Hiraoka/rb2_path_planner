@@ -9,7 +9,11 @@ namespace wholebodycontact_locomotion_planner {
     for(int i=0;i<this->collisionConstraints.size();i++){
       conditions->children().push_back(this->collisionConstraints[i]);
     }
-    std::shared_ptr<ik_constraint2::ORConstraint> reachabilityConditions = std::make_shared<ik_constraint2::ORConstraint>();
+
+    std::shared_ptr<ik_constraint2_keep_collision_scfr::KeepCollisionScfrConstraint> keepScfrConstraint = std::make_shared<ik_constraint2_keep_collision_scfr::KeepCollisionScfrConstraint>();
+    std::shared_ptr<ik_constraint2_scfr::ScfrConstraint> scfrConstraint = std::make_shared<ik_constraint2_scfr::ScfrConstraint>();
+    scfrConstraint->A_robot() = robot;
+    keepScfrConstraint->scfrConstraint() = scfrConstraint;
     for(int i=0;i<this->reachabilityConstraints.size();i++){
       std::shared_ptr<ik_constraint2_bullet::BulletKeepCollisionConstraint> constraint = this->reachabilityConstraints[i];
       constraint->B_link() = environment->surfacesBody->rootLink();
@@ -20,17 +24,12 @@ namespace wholebodycontact_locomotion_planner {
                                                   constraint->B_FACE_C(),
                                                   constraint->B_FACE_dl(),
                                                   constraint->B_FACE_du());
-      constraint->updateBounds(); // キャッシュを内部に作る.
-      reachabilityConditions->children().push_back(constraint);
+      keepScfrConstraint->keepCollisionConstraints().push_back(constraint);
     }
-    conditions->children().push_back(reachabilityConditions);
-
-    std::shared_ptr<ik_constraint2_keep_collision_scfr::KeepCollisionScfrConstraint> scfrConstraint = std::make_shared<ik_constraint2_keep_collision_scfr::KeepCollisionScfrConstraint>();
-    for(int i=0;i<this->reachabilityConstraints.size();i++){
-      scfrConstraint->A_robot() = robot;
-      scfrConstraint->keepCollisionConstraints().push_back(this->reachabilityConstraints[i]);
-    }
-    conditions->children().push_back(scfrConstraint);
+    keepScfrConstraint->updateBounds();
+    //    keepScfrConstraint->debugLevel() = 2;
+    //    scfrConstraint->SCFRparam().debugLevel = 1;
+    conditions->children().push_back(keepScfrConstraint);
     return conditions;
   }
 }
