@@ -78,6 +78,7 @@ namespace wholebodycontact_locomotion_planner{
       goal_->A_link() = param->robot->rootLink();
       goal_->B_link() = nullptr;
       goal_->B_localpos() = goal;
+      goal_->precision() = 1e-2;
       goals.push_back(goal_);
     }
 
