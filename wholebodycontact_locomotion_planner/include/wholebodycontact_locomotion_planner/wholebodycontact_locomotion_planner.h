@@ -23,7 +23,7 @@ namespace wholebodycontact_locomotion_planner{
       gikRootParam.timeout = 20;
       gikRootParam.maxTranslation = 3;
       gikRootParam.threads = 1;
-      gikRootParam.goalBias = 0.2;
+      gikRootParam.goalBias = 0.2; // state生成後この確率で更にgoalへ近づくためにstateを作る。あまり大きいと局所最適解ばかり見つかって遅い
       gikRootParam.projectCellSize = 0.4; // 0.05よりも0.1の方が速い. 0.2より0.4のほうが速い? 2m * 2m * 2mの空間を動くとして、samplingを200個くらいまでにしたければ、cellの大きさもそれなりに大きくないとスカスカになってしまう.
       gikRootParam.pikParam.we = 1e1; // 逆運動学が振動しないこと優先. 1e0だと不安定. 1e3だと大きすぎる
       gikRootParam.pikParam.wmax = 1e0; // 1e2程度にすると関節がめり込まなくなるが、ほとんど動かない. TODO 体を小さくするタスクを明示的に与える？
