@@ -4,9 +4,6 @@
 
 namespace wholebodycontact_locomotion_planner {
   std::shared_ptr<ik_constraint2::IKConstraint> Mode::generateCondition(const std::shared_ptr<Environment>& environment, const cnoid::BodyPtr& robot){
-    std::shared_ptr<ik_constraint2::ANDConstraint> conditions = std::make_shared<ik_constraint2::ANDConstraint>();
-    //conditions->debugLevel() = 2;
-
     std::shared_ptr<ik_constraint2_keep_collision_scfr::KeepCollisionScfrConstraint> keepScfrConstraint = std::make_shared<ik_constraint2_keep_collision_scfr::KeepCollisionScfrConstraint>();
     std::shared_ptr<ik_constraint2_scfr::ScfrConstraint> scfrConstraint = std::make_shared<ik_constraint2_scfr::ScfrConstraint>();
     scfrConstraint->A_robot() = robot;
@@ -30,7 +27,6 @@ namespace wholebodycontact_locomotion_planner {
     keepScfrConstraint->updateBounds();
     //    keepScfrConstraint->debugLevel() = 2;
     //    scfrConstraint->SCFRparam().debugLevel = 1;
-    conditions->children().push_back(keepScfrConstraint);
-    return conditions;
+    return keepScfrConstraint;
   }
 }

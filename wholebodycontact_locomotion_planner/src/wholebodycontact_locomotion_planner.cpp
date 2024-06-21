@@ -4,7 +4,7 @@ namespace wholebodycontact_locomotion_planner{
   bool solveCBPath(const std::shared_ptr<Environment>& environment,
                    const cnoid::Isometry3 goal, // rootLink
                    const std::shared_ptr<WBLPParam>& param,
-                   std::vector<std::vector<double> >& outputPath
+                   std::vector<std::pair<std::vector<double>, std::string> >& outputPath
                    ){
     std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints;
     {
@@ -110,7 +110,24 @@ namespace wholebodycontact_locomotion_planner{
 
     outputPath.resize(path->size());
     for (int i=0; i<path->size(); i++) {
-      outputPath[i] = path->at(i);
+      outputPath[i].first = path->at(i);
+      global_inverse_kinematics_solver::frame2Link(path->at(i),param->variables);
+      for (std::unordered_map<std::string, std::shared_ptr<Mode> >::const_iterator it=param->modes.begin(); it!=param->modes.end(); it++){
+        for (int j=0; j<it->second->reachabilityConstraints.size(); j++) it->second->reachabilityConstraints[j]->updateBounds();
+      }
+      double MaxScore = 0;
+      std::string name  = "";
+      for (std::unordered_map<std::string, std::shared_ptr<Mode> >::const_iterator it=param->modes.begin(); it!=param->modes.end(); it++){
+        bool satisfied = true;
+        for (int j=0; j<it->second->reachabilityConstraints.size(); j++) {
+          if (!(it->second->reachabilityConstraints[j]->isSatisfied())) satisfied = false;
+        }
+        if (satisfied && it->second->score > MaxScore) {
+          name = it->first;
+          MaxScore = it->second->score;
+        }
+      }
+      outputPath[i].second = name;
     }
     return true;
 

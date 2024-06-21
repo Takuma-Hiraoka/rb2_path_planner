@@ -38,7 +38,7 @@ namespace wholebodycontact_locomotion_planner_sample{
     goal.translation()[0] += 3.3;
     goal.translation()[2] -= 0.2;
 
-    std::vector<std::vector<double> > path;
+    std::vector<std::pair<std::vector<double>, std::string> > path;
 
     wholebodycontact_locomotion_planner::solveCBPath(environment,
                                                      goal,
@@ -54,10 +54,10 @@ namespace wholebodycontact_locomotion_planner_sample{
     while(true) {
       // main loop
       for(int i=0;i<path.size();i++){
-        global_inverse_kinematics_solver::frame2Link(path.at(i),param->variables);
+        global_inverse_kinematics_solver::frame2Link(path.at(i).first,param->variables);
         param->robot->calcForwardKinematics(false);
         param->robot->calcCenterOfMass();
-        global_inverse_kinematics_solver::frame2Link(path.at(i),abstractVariables);
+        global_inverse_kinematics_solver::frame2Link(path.at(i).first,abstractVariables);
         abstractRobot->calcForwardKinematics(false);
         abstractRobot->calcCenterOfMass();
         viewer->drawObjects();

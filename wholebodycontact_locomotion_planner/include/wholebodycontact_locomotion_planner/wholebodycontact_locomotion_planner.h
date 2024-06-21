@@ -43,7 +43,7 @@ namespace wholebodycontact_locomotion_planner{
   bool solveCBPath(const std::shared_ptr<Environment>& environment,
                    const cnoid::Isometry3 goal, // rootLink
                    const std::shared_ptr<WBLPParam>& param,
-                   std::vector<std::vector<double> >& outputPath
+                   std::vector<std::pair<std::vector<double>, std::string> >& outputPath
                    );
 }
 
