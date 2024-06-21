@@ -31,7 +31,7 @@ namespace wholebodycontact_locomotion_planner_sample{
     param->gikRootParam.debugLevel = 1;
     param->gikRootParam.timeout = 20;
     param->gikRootParam.goalBias = 0.2;
-    param->gikRootParam.threads = 20;
+    param->gikRootParam.threads = 10;
     //    param->gikRootParam.pikParam.debugLevel = 1;
 
     cnoid::Isometry3 goal = param->robot->rootLink()->T();

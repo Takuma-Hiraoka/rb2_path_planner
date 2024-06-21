@@ -4,6 +4,7 @@
 #include <choreonoid_viewer/choreonoid_viewer.h>
 #include <wholebodycontact_locomotion_planner/RobotState.h>
 #include <global_inverse_kinematics_solver/global_inverse_kinematics_solver.h>
+#include <trajectory_optimizer/trajectory_optimizer.h>
 
 namespace wholebodycontact_locomotion_planner{
   class WBLPParam {
@@ -16,6 +17,8 @@ namespace wholebodycontact_locomotion_planner{
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
     std::unordered_map<std::string, std::shared_ptr<Mode> > modes;
     global_inverse_kinematics_solver::GIKParam gikRootParam;
+    bool OptimizeTrajectory = false; // 関節角度軌道を最適化、近いstate同士をショートカットするかどうか. もともと粗い軌道でありショートカットできる数は少なく、計算時間が増えるデメリットのほうが大きい.
+    trajectory_optimizer::TOParam toParam;
 
     WBLPParam() {
       gikRootParam.range = 0.05;
@@ -32,8 +35,9 @@ namespace wholebodycontact_locomotion_planner{
       gikRootParam.pikParam.checkFinalState = true; // ゼロ空間でreference angleに可能な限り近づけるタスクのprecitionは大きくして、常にsatisfiedになることに注意
       gikRootParam.pikParam.calcVelocity = false; // 疎な軌道生成なので、velocityはチェックしない
       gikRootParam.pikParam.convergeThre = 5e-2; // 要パラチューン. IKConsraintのmaxErrorより小さくないと、収束誤判定する. maxErrorが5e-2の場合、5e-2だと大きすぎる. 5e-3だと小さすぎて時間がかかる. ikのwe, wn, wmax, maxErrorといったパラメータと連動してパラチューンせよ.
-      gikRootParam.pikParam.pathOutputLoop = 1;
+      gikRootParam.pikParam.pathOutputLoop = 5;
 
+      toParam.shortcutThre=4e-2;
     };
   };
   bool solveCBPath(const std::shared_ptr<Environment>& environment,

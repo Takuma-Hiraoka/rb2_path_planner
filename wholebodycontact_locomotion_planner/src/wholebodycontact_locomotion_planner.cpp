@@ -98,6 +98,16 @@ namespace wholebodycontact_locomotion_planner{
       std::cerr << "solveCBPath failed" << std::endl;
       return false;
     }
+
+    // 関節角軌道が暴れているので軌道最適化
+    if (param->OptimizeTrajectory) {
+      param->toParam.pikParam.convergeThre=param->gikRootParam.pikParam.convergeThre * path->size();
+      trajectory_optimizer::solveTO(param->variables,
+                                    constraints,
+                                    param->toParam,
+                                    path);
+    }
+
     outputPath.resize(path->size());
     for (int i=0; i<path->size(); i++) {
       outputPath[i] = path->at(i);
