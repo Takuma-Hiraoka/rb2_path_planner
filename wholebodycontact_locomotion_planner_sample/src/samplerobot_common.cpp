@@ -104,7 +104,7 @@ namespace wholebodycontact_locomotion_planner_sample{
           // 拡大
           {
             for (int v=0; v<model->vertices()->size(); v++) {
-              model->vertices()->at(v) += model->vertices()->at(v).cast<cnoid::Vector3f::Scalar>() / (model->vertices()->at(v).cast<cnoid::Vector3f::Scalar>()).norm() * 0.3;
+              model->vertices()->at(v) += model->vertices()->at(v).cast<cnoid::Vector3f::Scalar>() / (model->vertices()->at(v).cast<cnoid::Vector3f::Scalar>()).norm() * 0.1;
             }
           }
           // 凸包
@@ -136,6 +136,20 @@ namespace wholebodycontact_locomotion_planner_sample{
       }
     } // abstractRobot
 
+    param->constraints.clear();
+    // environmental collision
+    for (int i=0; i<param->robot->numLinks(); i++) {
+      std::shared_ptr<ik_constraint2_distance_field::DistanceFieldCollisionConstraint> constraint = std::make_shared<ik_constraint2_distance_field::DistanceFieldCollisionConstraint>();
+      constraint->A_link() = param->robot->link(i);
+      constraint->field() = field;
+      constraint->tolerance() = 0.06; // ちょうど干渉すると法線ベクトルが変になることがあるので, 1回のiterationで動きうる距離よりも大きくせよ.
+      constraint->precision() = 0.05; // 角で不正確になりがちなので, toleranceを大きくしてprecisionも大きくして、best effort的にする. precisionはdistanceFieldのサイズの倍数より大きくする. 大きく動くのでつま先が近かったときにつま先は近くならないがかかとが地面にめり込む、ということは起こりうる.
+      constraint->ignoreDistance() = 0.5; // 大きく動くので、ignoreも大きくする必要がある
+      constraint->maxError() = 0.1; // めり込んだら一刻も早く離れたい
+      constraint->updateBounds(); // キャッシュを内部に作る. キャッシュを作ったあと、10スレッドぶんコピーする方が速い
+      param->constraints.push_back(constraint);
+    }
+
     param->modes.clear();
     {
       std::shared_ptr<wholebodycontact_locomotion_planner::Mode> mode = std::make_shared<wholebodycontact_locomotion_planner::Mode>();
@@ -161,18 +175,6 @@ namespace wholebodycontact_locomotion_planner_sample{
           constraint->debugLevel() = 0;
           constraint->updateBounds(); // キャッシュを内部に作る.
           mode->reachabilityConstraints.push_back(constraint);
-        }
-        // environmental collision
-        for (int i=0; i<param->robot->numLinks(); i++) {
-          std::shared_ptr<ik_constraint2_distance_field::DistanceFieldCollisionConstraint> constraint = std::make_shared<ik_constraint2_distance_field::DistanceFieldCollisionConstraint>();
-          constraint->A_link() = param->robot->link(i);
-          constraint->field() = field;
-          constraint->tolerance() = 0.06; // ちょうど干渉すると法線ベクトルが変になることがあるので, 1回のiterationで動きうる距離よりも大きくせよ.
-          constraint->precision() = 0.05; // 角で不正確になりがちなので, toleranceを大きくしてprecisionも大きくして、best effort的にする. precisionはdistanceFieldのサイズの倍数より大きくする. 大きく動くのでつま先が近かったときにつま先は近くならないがかかとが地面にめり込む、ということは起こりうる.
-          constraint->ignoreDistance() = 0.5; // 大きく動くので、ignoreも大きくする必要がある
-          constraint->maxError() = 0.1; // めり込んだら一刻も早く離れたい
-          constraint->updateBounds(); // キャッシュを内部に作る. キャッシュを作ったあと、10スレッドぶんコピーする方が速い
-          mode->collisionConstraints.push_back(constraint);
         }
       }
     } // mode1

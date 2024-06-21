@@ -63,6 +63,9 @@ namespace wholebodycontact_locomotion_planner{
       conditions->children().push_back(it->second->generateCondition(environment, param->robot));
     }
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints1{conditions};
+    for (int i=0; i<param->constraints.size(); i++) {
+      constraints1.push_back(param->constraints[i]);
+    }
     constraints.push_back(constraints1);
 
     for (int i=0; i<constraints.size(); i++) {

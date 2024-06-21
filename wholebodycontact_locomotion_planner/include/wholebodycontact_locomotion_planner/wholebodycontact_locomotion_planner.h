@@ -12,6 +12,7 @@ namespace wholebodycontact_locomotion_planner{
     std::shared_ptr<choreonoid_viewer::Viewer> viewer = nullptr;
     cnoid::BodyPtr robot;
     std::vector<cnoid::LinkPtr> variables;
+    std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints;
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
     std::unordered_map<std::string, std::shared_ptr<Mode> > modes;
     global_inverse_kinematics_solver::GIKParam gikRootParam;
@@ -24,7 +25,8 @@ namespace wholebodycontact_locomotion_planner{
       gikRootParam.threads = 1;
       gikRootParam.goalBias = 0.2;
       gikRootParam.projectCellSize = 0.4; // 0.05よりも0.1の方が速い. 0.2より0.4のほうが速い? 2m * 2m * 2mの空間を動くとして、samplingを200個くらいまでにしたければ、cellの大きさもそれなりに大きくないとスカスカになってしまう.
-      gikRootParam.pikParam.we = 5e2; // 逆運動学が振動しないこと優先. 1e0だと不安定. 1e3だと大きすぎる
+      gikRootParam.pikParam.we = 1e1; // 逆運動学が振動しないこと優先. 1e0だと不安定. 1e3だと大きすぎる
+      gikRootParam.pikParam.wmax = 1e0;
       gikRootParam.pikParam.maxIteration = 100; // max iterationに達するか、convergeしたら終了する. isSatisfiedでは終了しない. ゼロ空間でreference angleに可能な限り近づけるタスクがあるので. 1 iterationで0.5msくらいかかるので、stateを1つ作るための時間の上限が見積もれる. 一見、この値を小さくすると早くなりそうだが、goalSampling時に本当はgoalに到達できるのにその前に返ってしまうことで遅くなることがあるため、少ないiterationでも収束するように他のパラメータを調整したほうがいい
       gikRootParam.pikParam.minIteration = 10;
       gikRootParam.pikParam.checkFinalState = true; // ゼロ空間でreference angleに可能な限り近づけるタスクのprecitionは大きくして、常にsatisfiedになることに注意
