@@ -26,13 +26,13 @@ namespace wholebodycontact_locomotion_planner{
       gikRootParam.goalBias = 0.2;
       gikRootParam.projectCellSize = 0.4; // 0.05よりも0.1の方が速い. 0.2より0.4のほうが速い? 2m * 2m * 2mの空間を動くとして、samplingを200個くらいまでにしたければ、cellの大きさもそれなりに大きくないとスカスカになってしまう.
       gikRootParam.pikParam.we = 1e1; // 逆運動学が振動しないこと優先. 1e0だと不安定. 1e3だと大きすぎる
-      gikRootParam.pikParam.wmax = 1e0;
+      gikRootParam.pikParam.wmax = 1e0; // 1e2程度にすると関節がめり込まなくなるが、ほとんど動かない. TODO 体を小さくするタスクを明示的に与える？
       gikRootParam.pikParam.maxIteration = 100; // max iterationに達するか、convergeしたら終了する. isSatisfiedでは終了しない. ゼロ空間でreference angleに可能な限り近づけるタスクがあるので. 1 iterationで0.5msくらいかかるので、stateを1つ作るための時間の上限が見積もれる. 一見、この値を小さくすると早くなりそうだが、goalSampling時に本当はgoalに到達できるのにその前に返ってしまうことで遅くなることがあるため、少ないiterationでも収束するように他のパラメータを調整したほうがいい
-      gikRootParam.pikParam.minIteration = 10;
+      gikRootParam.pikParam.minIteration = 20;
       gikRootParam.pikParam.checkFinalState = true; // ゼロ空間でreference angleに可能な限り近づけるタスクのprecitionは大きくして、常にsatisfiedになることに注意
       gikRootParam.pikParam.calcVelocity = false; // 疎な軌道生成なので、velocityはチェックしない
       gikRootParam.pikParam.convergeThre = 5e-2; // 要パラチューン. IKConsraintのmaxErrorより小さくないと、収束誤判定する. maxErrorが5e-2の場合、5e-2だと大きすぎる. 5e-3だと小さすぎて時間がかかる. ikのwe, wn, wmax, maxErrorといったパラメータと連動してパラチューンせよ.
-      gikRootParam.pikParam.pathOutputLoop = 5;
+      gikRootParam.pikParam.pathOutputLoop = 1;
 
     };
   };
