@@ -46,6 +46,11 @@ namespace wholebodycontact_locomotion_planner{
                    const std::shared_ptr<WBLPParam>& param,
                    std::vector<std::pair<std::vector<double>, std::string> >& outputPath
                    );
+  bool solveWBLP(const std::shared_ptr<Environment>& environment,
+                 const std::shared_ptr<WBLPParam>& param,
+                 const std::vector<std::pair<std::vector<double>, std::string> > guidePath,
+                 std::vector<std::pair<std::vector<double>, Contact> >& outputPath // angle, contact
+                 );
 }
 
 #endif

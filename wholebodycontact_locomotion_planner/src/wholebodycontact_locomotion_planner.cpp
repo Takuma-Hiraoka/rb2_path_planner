@@ -111,17 +111,16 @@ namespace wholebodycontact_locomotion_planner{
     outputPath.resize(path->size());
     for (int i=0; i<path->size(); i++) {
       outputPath[i].first = path->at(i);
-      global_inverse_kinematics_solver::frame2Link(path->at(i),param->variables);
-      for (std::unordered_map<std::string, std::shared_ptr<Mode> >::const_iterator it=param->modes.begin(); it!=param->modes.end(); it++){
-        for (int j=0; j<it->second->reachabilityConstraints.size(); j++) it->second->reachabilityConstraints[j]->updateBounds();
-      }
+      // global_inverse_kinematics_solver::frame2Link(path->at(i),param->variables);
+      // isSatisfiedであるリンクを全て接触させればSCFRが存在するmodeがすくなくとも一つあることをGIKで保証済み
+      // TODO mode選択. どのみち全リンク接触でも優先度をつける等の工夫をするならmode自体が不要？
+      // for (std::unordered_map<std::string, std::shared_ptr<Mode> >::const_iterator it=param->modes.begin(); it!=param->modes.end(); it++){
+      //   for (int j=0; j<it->second->reachabilityConstraints.size(); j++) it->second->reachabilityConstraints[j]->updateBounds();
+      // }
       double MaxScore = 0;
       std::string name  = "";
       for (std::unordered_map<std::string, std::shared_ptr<Mode> >::const_iterator it=param->modes.begin(); it!=param->modes.end(); it++){
         bool satisfied = true;
-        for (int j=0; j<it->second->reachabilityConstraints.size(); j++) {
-          if (!(it->second->reachabilityConstraints[j]->isSatisfied())) satisfied = false;
-        }
         if (satisfied && it->second->score > MaxScore) {
           name = it->first;
           MaxScore = it->second->score;
@@ -131,5 +130,14 @@ namespace wholebodycontact_locomotion_planner{
     }
     return true;
 
+  }
+
+  bool solveWBLP(const std::shared_ptr<Environment>& environment,
+                 const std::shared_ptr<WBLPParam>& param,
+                 const std::vector<std::pair<std::vector<double>, std::string> > guidePath,
+                 std::vector<std::pair<std::vector<double>, Contact> >& outputPath // angle, contact
+                 ) {
+    
+    return true;
   }
 }

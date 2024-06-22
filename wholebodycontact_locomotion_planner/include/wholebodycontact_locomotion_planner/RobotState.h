@@ -50,6 +50,17 @@ namespace wholebodycontact_locomotion_planner {
     cnoid::Vector3 translation = cnoid::Vector3::Zero(); // リンク座標系でどこに取り付けられているか
     cnoid::Matrix3 rotation = cnoid::Matrix3::Identity(); // リンク座標系でセンサの姿勢．zがリンク内側方向
   };
+  class Contact{ // PositionConstraintに入れられるように
+  public:
+    std::string name; // 接触しているリンク
+    cnoid::LinkPtr link1 = nullptr; // nullptrならworld
+    cnoid::Isometry3 localPose1 = cnoid::Isometry3::Identity();
+    cnoid::LinkPtr link2 = nullptr; // nullptrならworld
+    cnoid::Isometry3 localPose2 = cnoid::Isometry3::Identity();
+    Eigen::SparseMatrix<double,Eigen::RowMajor> C{0,6}; // localPose1 frame/origin. link1がlink2から受ける力に関する接触力制約. 列は6. C, ld, udの行数は同じ.
+    cnoid::VectorX dl;
+    cnoid::VectorX du;
+  };
 }
 
 #endif
