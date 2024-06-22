@@ -44,6 +44,12 @@ namespace wholebodycontact_locomotion_planner {
     std::vector<std::shared_ptr<ik_constraint2_distance_field::DistanceFieldCollisionConstraint> > collisionConstraints;
     std::shared_ptr<ik_constraint2::IKConstraint> generateCondition(const std::shared_ptr<Environment>& environment, const cnoid::BodyPtr& robot);
   };
+  class ContactPoint{
+  public:
+    // from config file
+    cnoid::Vector3 translation = cnoid::Vector3::Zero(); // リンク座標系でどこに取り付けられているか
+    cnoid::Matrix3 rotation = cnoid::Matrix3::Identity(); // リンク座標系でセンサの姿勢．zがリンク内側方向
+  };
 }
 
 #endif
