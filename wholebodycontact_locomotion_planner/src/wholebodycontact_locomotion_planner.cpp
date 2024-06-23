@@ -156,7 +156,7 @@ namespace wholebodycontact_locomotion_planner{
   bool solveWBLP(const std::shared_ptr<Environment>& environment,
                  const std::shared_ptr<WBLPParam>& param,
                  const std::vector<std::pair<std::vector<double>, std::string> > guidePath,
-                 std::vector<std::pair<std::vector<double>, Contact> >& outputPath // angle, contact
+                 std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > >& outputPath // angle, contact
                  ) {
     
     return true;

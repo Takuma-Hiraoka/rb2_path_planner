@@ -11,6 +11,7 @@ namespace wholebodycontact_locomotion_planner {
     keepScfrConstraint->breakableSCFRParam().lpTolerance = 1e-7;
     scfrConstraint->SCFRParam().eps = 0.2; // default 0.05 15点程度で接していても2ms程度で解ける
     //    scfrConstraint->debugLevel() = 2;
+    scfrConstraint->maxCError() = 0.2;
     keepScfrConstraint->scfrConstraint() = scfrConstraint;
     for(int i=0;i<this->reachabilityConstraints.size();i++){
       std::shared_ptr<ik_constraint2_bullet::BulletKeepCollisionConstraint> constraint = this->reachabilityConstraints[i];

@@ -156,6 +156,21 @@ namespace wholebodycontact_locomotion_planner_sample{
     param->constraints.clear();
     // environmental collision
     for (int i=0; i<param->robot->numLinks(); i++) {
+      if(param->robot->link(i)->name() == "LLEG_ANKLE_P" ||
+         param->robot->link(i)->name() == "RLEG_ANKLE_P" ||
+         param->robot->link(i)->name() == "LLEG_HIP_P" ||
+         param->robot->link(i)->name() == "RLEG_HIP_P" ||
+         param->robot->link(i)->name() == "LLEG_HIP_R" ||
+         param->robot->link(i)->name() == "RLEG_HIP_R" ||
+         param->robot->link(i)->name() == "LARM_WRIST_P" ||
+         param->robot->link(i)->name() == "RARM_WRIST_P" ||
+         param->robot->link(i)->name() == "LARM_WRIST_Y" ||
+         param->robot->link(i)->name() == "RARM_WRIST_Y" ||
+         param->robot->link(i)->name() == "LARM_SHOULDER_Y" ||
+         param->robot->link(i)->name() == "RARM_SHOULDER_Y" ||
+         param->robot->link(i)->name() == "LARM_SHOULDER_P" ||
+         param->robot->link(i)->name() == "RARM_SHOULDER_P" ||
+         param->robot->link(i)->name() == "WAIST_P") continue;
       std::shared_ptr<ik_constraint2_distance_field::DistanceFieldCollisionConstraint> constraint = std::make_shared<ik_constraint2_distance_field::DistanceFieldCollisionConstraint>();
       constraint->A_link() = param->robot->link(i);
       constraint->field() = field;
