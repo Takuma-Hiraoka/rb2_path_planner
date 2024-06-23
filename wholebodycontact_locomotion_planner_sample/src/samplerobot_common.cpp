@@ -8,6 +8,7 @@
 #include <choreonoid_cddlib/choreonoid_cddlib.h>
 #include <cnoid/MeshExtractor>
 #include <cnoid/YAMLReader>
+#include <ik_constraint2_vclip/ik_constraint2_vclip.h>
 
 namespace wholebodycontact_locomotion_planner_sample{
   inline void addMesh(cnoid::SgMeshPtr model, std::shared_ptr<cnoid::MeshExtractor> meshExtractor){
@@ -149,6 +150,32 @@ namespace wholebodycontact_locomotion_planner_sample{
       //      constraint->maxError() = 0.1; // めり込んだら一刻も早く離れたい
       constraint->updateBounds(); // キャッシュを内部に作る. キャッシュを作ったあと、10スレッドぶんコピーする方が速い
       param->constraints.push_back(constraint);
+    }
+    // task: self collision
+    {
+      std::vector<std::string> rarm{"RARM_SHOULDER_R", "RARM_ELBOW", "RARM_WRIST_R"};
+      std::vector<std::string> larm{"LARM_SHOULDER_R", "LARM_ELBOW", "LARM_WRIST_R"};
+      std::vector<std::string> rleg{"RLEG_HIP_Y", "RLEG_KNEE"};
+      std::vector<std::string> lleg{"LLEG_HIP_Y", "LLEG_KNEE"};
+      std::vector<std::string> torso{"WAIST", "WAIST_R", "CHEST"};
+
+      std::vector<std::vector<std::string> > pairs;
+      for(int i=0;i<rarm.size();i++) for(int j=0;j<larm.size();j++) pairs.push_back(std::vector<std::string>{rarm[i],larm[j]});
+      for(int i=0;i<rarm.size();i++) for(int j=0;j<rleg.size();j++) pairs.push_back(std::vector<std::string>{rarm[i],rleg[j]});
+      for(int i=0;i<rarm.size();i++) for(int j=0;j<lleg.size();j++) pairs.push_back(std::vector<std::string>{rarm[i],lleg[j]});
+      for(int i=0;i<rarm.size();i++) for(int j=0;j<torso.size();j++) pairs.push_back(std::vector<std::string>{rarm[i],torso[j]});
+      for(int i=0;i<larm.size();i++) for(int j=0;j<rleg.size();j++) pairs.push_back(std::vector<std::string>{larm[i],rleg[j]});
+      for(int i=0;i<larm.size();i++) for(int j=0;j<lleg.size();j++) pairs.push_back(std::vector<std::string>{larm[i],lleg[j]});
+      for(int i=0;i<larm.size();i++) for(int j=0;j<torso.size();j++) pairs.push_back(std::vector<std::string>{larm[i],torso[j]});
+      for(int i=0;i<rleg.size();i++) for(int j=0;j<lleg.size();j++) pairs.push_back(std::vector<std::string>{rleg[i],lleg[j]});
+
+      for(int i=0;i<pairs.size();i++){
+        std::shared_ptr<ik_constraint2_vclip::VclipCollisionConstraint> constraint = std::make_shared<ik_constraint2_vclip::VclipCollisionConstraint>();
+        constraint->A_link() = param->robot->link(pairs[i][0]);
+        constraint->B_link() = param->robot->link(pairs[i][1]);
+        constraint->tolerance() = 0.01;
+        param->constraints.push_back(constraint);
+      }
     }
 
     param->modes.clear();
