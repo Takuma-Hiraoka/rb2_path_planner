@@ -98,6 +98,21 @@ namespace wholebodycontact_locomotion_planner_sample{
       cnoid::Affine3 transform = cnoid::Affine3::Identity();
       transform.linear() *= 1.2;
       for (int i=0; i<abstractRobot->numLinks(); i++) {
+        if(param->robot->link(i)->name() == "LLEG_ANKLE_P" ||
+           param->robot->link(i)->name() == "RLEG_ANKLE_P" ||
+           param->robot->link(i)->name() == "LLEG_HIP_P" ||
+           param->robot->link(i)->name() == "RLEG_HIP_P" ||
+           param->robot->link(i)->name() == "LLEG_HIP_R" ||
+           param->robot->link(i)->name() == "RLEG_HIP_R" ||
+           param->robot->link(i)->name() == "LARM_WRIST_P" ||
+           param->robot->link(i)->name() == "RARM_WRIST_P" ||
+           param->robot->link(i)->name() == "LARM_WRIST_Y" ||
+           param->robot->link(i)->name() == "RARM_WRIST_Y" ||
+           param->robot->link(i)->name() == "LARM_SHOULDER_Y" ||
+           param->robot->link(i)->name() == "RARM_SHOULDER_Y" ||
+           param->robot->link(i)->name() == "LARM_SHOULDER_P" ||
+           param->robot->link(i)->name() == "RARM_SHOULDER_P" ||
+           param->robot->link(i)->name() == "WAIST_P") continue;
         // 拡大凸包meshを作る
         cnoid::SgNodePtr collisionshape = param->robot->link(i)->collisionShape();
         Eigen::Matrix<double,3,Eigen::Dynamic> vertices;
@@ -144,7 +159,7 @@ namespace wholebodycontact_locomotion_planner_sample{
       std::shared_ptr<ik_constraint2_distance_field::DistanceFieldCollisionConstraint> constraint = std::make_shared<ik_constraint2_distance_field::DistanceFieldCollisionConstraint>();
       constraint->A_link() = param->robot->link(i);
       constraint->field() = field;
-      constraint->tolerance() = 0.08; // ちょうど干渉すると法線ベクトルが変になることがあるので, 1回のiterationで動きうる距離よりも大きくせよ.
+      constraint->tolerance() = 0.06; // ちょうど干渉すると法線ベクトルが変になることがあるので, 1回のiterationで動きうる距離よりも大きくせよ.
       constraint->precision() = 0.05; // 角で不正確になりがちなので, toleranceを大きくしてprecisionも大きくして、best effort的にする. precisionはdistanceFieldのサイズの倍数より大きくする. 大きく動くのでつま先が近かったときにつま先は近くならないがかかとが地面にめり込む、ということは起こりうる.
       constraint->ignoreDistance() = 0.5; // 大きく動くので、ignoreも大きくする必要がある
       //      constraint->maxError() = 0.1; // めり込んだら一刻も早く離れたい
@@ -186,6 +201,21 @@ namespace wholebodycontact_locomotion_planner_sample{
       {
         // reachability
         for (int i=0; i<param->robot->numLinks(); i++) {
+          if(param->robot->link(i)->name() == "LLEG_ANKLE_P" ||
+             param->robot->link(i)->name() == "RLEG_ANKLE_P" ||
+             param->robot->link(i)->name() == "LLEG_HIP_P" ||
+             param->robot->link(i)->name() == "RLEG_HIP_P" ||
+             param->robot->link(i)->name() == "LLEG_HIP_R" ||
+             param->robot->link(i)->name() == "RLEG_HIP_R" ||
+             param->robot->link(i)->name() == "LARM_WRIST_P" ||
+             param->robot->link(i)->name() == "RARM_WRIST_P" ||
+             param->robot->link(i)->name() == "LARM_WRIST_Y" ||
+             param->robot->link(i)->name() == "RARM_WRIST_Y" ||
+             param->robot->link(i)->name() == "LARM_SHOULDER_Y" ||
+             param->robot->link(i)->name() == "RARM_SHOULDER_Y" ||
+             param->robot->link(i)->name() == "LARM_SHOULDER_P" ||
+             param->robot->link(i)->name() == "RARM_SHOULDER_P" ||
+             param->robot->link(i)->name() == "WAIST_P") continue;
           std::shared_ptr<ik_constraint2_bullet::BulletKeepCollisionConstraint> constraint = std::make_shared<ik_constraint2_bullet::BulletKeepCollisionConstraint>();
           constraint->A_link() = param->robot->link(i);
           constraint->A_link_bulletModel() = constraint->A_link();

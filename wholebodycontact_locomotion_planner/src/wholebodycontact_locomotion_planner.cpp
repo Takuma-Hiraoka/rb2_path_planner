@@ -4,7 +4,7 @@ namespace wholebodycontact_locomotion_planner{
   bool solveCBPath(const std::shared_ptr<Environment>& environment,
                    const cnoid::Isometry3 goal, // rootLink
                    const std::shared_ptr<WBLPParam>& param,
-                   std::vector<std::pair<std::vector<double>, std::string> >& outputPath
+                   std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > >& outputPath // angle. environment contact candidate
                    ){
     std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints;
     {
@@ -111,22 +111,43 @@ namespace wholebodycontact_locomotion_planner{
     outputPath.resize(path->size());
     for (int i=0; i<path->size(); i++) {
       outputPath[i].first = path->at(i);
-      // global_inverse_kinematics_solver::frame2Link(path->at(i),param->variables);
+      global_inverse_kinematics_solver::frame2Link(path->at(i),param->variables);
       // isSatisfiedであるリンクを全て接触させればSCFRが存在するmodeがすくなくとも一つあることをGIKで保証済み
       // TODO mode選択. どのみち全リンク接触でも優先度をつける等の工夫をするならmode自体が不要？
-      // for (std::unordered_map<std::string, std::shared_ptr<Mode> >::const_iterator it=param->modes.begin(); it!=param->modes.end(); it++){
-      //   for (int j=0; j<it->second->reachabilityConstraints.size(); j++) it->second->reachabilityConstraints[j]->updateBounds();
-      // }
-      double MaxScore = 0;
-      std::string name  = "";
+      std::vector<std::shared_ptr<Contact> >contacts;
       for (std::unordered_map<std::string, std::shared_ptr<Mode> >::const_iterator it=param->modes.begin(); it!=param->modes.end(); it++){
-        bool satisfied = true;
-        if (satisfied && it->second->score > MaxScore) {
-          name = it->first;
-          MaxScore = it->second->score;
+        for (int j=0; j<it->second->reachabilityConstraints.size(); j++) {
+          it->second->reachabilityConstraints[j]->updateBounds();
+          if (it->second->reachabilityConstraints[j]->isSatisfied()) {
+            std::shared_ptr<Contact> contact = std::make_shared<Contact>();
+            contact->name = it->second->reachabilityConstraints[j]->A_link()->name();
+            contact->link1 = it->second->reachabilityConstraints[j]->A_link();
+            contact->localPose1 = cnoid::Isometry3::Identity(); // WBLP時に決定する
+            contact->link2 = nullptr;
+            contact->localPose2.translation() = it->second->reachabilityConstraints[j]->currentp();
+            Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6); // TODO 干渉形状から出す？
+            C.insert(0,2) = 1.0;
+            C.insert(1,0) = 1.0; C.insert(1,2) = 0.2;
+            C.insert(2,0) = -1.0; C.insert(2,2) = 0.2;
+            C.insert(3,1) = 1.0; C.insert(3,2) = 0.2;
+            C.insert(4,1) = -1.0; C.insert(4,2) = 0.2;
+            C.insert(5,2) = 0.05; C.insert(5,3) = 1.0;
+            C.insert(6,2) = 0.05; C.insert(6,3) = -1.0;
+            C.insert(7,2) = 0.05; C.insert(7,4) = 1.0;
+            C.insert(8,2) = 0.05; C.insert(8,4) = -1.0;
+            C.insert(9,2) = 0.005; C.insert(9,5) = 1.0;
+            C.insert(10,2) = 0.005; C.insert(10,5) = -1.0;
+            contact->C = C;
+            cnoid::VectorX dl = Eigen::VectorXd::Zero(11);
+            contact->dl = dl;
+            cnoid::VectorX du = 1e10 * Eigen::VectorXd::Ones(11);
+            du[0] = 2000.0;
+            contact->du = du;
+            contacts.push_back(contact);
+          }
         }
       }
-      outputPath[i].second = name;
+      outputPath[i].second = contacts;
     }
     return true;
 

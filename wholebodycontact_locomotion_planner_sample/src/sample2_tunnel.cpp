@@ -38,7 +38,7 @@ namespace wholebodycontact_locomotion_planner_sample{
     goal.translation()[0] += 3.3;
     goal.translation()[2] -= 0.2;
 
-    std::vector<std::pair<std::vector<double>, std::string> > path;
+    std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<wholebodycontact_locomotion_planner::Contact> > > > path;
 
     wholebodycontact_locomotion_planner::solveCBPath(environment,
                                                      goal,
@@ -61,6 +61,9 @@ namespace wholebodycontact_locomotion_planner_sample{
         abstractRobot->calcForwardKinematics(false);
         abstractRobot->calcCenterOfMass();
         viewer->drawObjects();
+        std::cerr << "contacts :";
+        for (int j=0; j<path.at(i).second.size(); j++) std::cerr << " " << path.at(i).second[j]->link1->name();
+        std::cerr << std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
     }
