@@ -7,65 +7,88 @@ namespace wholebodycontact_locomotion_planner{
                    std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > >& outputPath // angle. environment contact candidate
                    ){
     std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints;
+    std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints0;
     {
-      std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints0;
-      {
-        // pitch > 0
-        std::shared_ptr<ik_constraint2::RegionConstraint> constraint = std::make_shared<ik_constraint2::RegionConstraint>();
-        constraint->A_link() = param->robot->rootLink();
-        constraint->A_localpos().translation() = cnoid::Vector3(0.1,0.0,0.0);
-        constraint->B_link() = param->robot->rootLink();
-        constraint->eval_link() = nullptr;
-        constraint->weightR().setZero();
-        constraint->C().resize(1,3);
-        constraint->C().insert(0,2) = 1.0;
-        constraint->dl().resize(1);
-        constraint->dl()[0] = -1e10;
-        constraint->du().resize(1);
-        constraint->du()[0] = 0.0;
-        //constraint->debugLevel() = 2;
-        constraints0.push_back(constraint);
-      }
-      {
-        // pitch < 90
-        std::shared_ptr<ik_constraint2::RegionConstraint> constraint = std::make_shared<ik_constraint2::RegionConstraint>();
-        constraint->A_link() = param->robot->rootLink();
-        constraint->A_localpos().translation() = cnoid::Vector3(0.0,0.0,-0.1);
-        constraint->B_link() = param->robot->rootLink();
-        constraint->eval_link() = nullptr;
-        constraint->weightR().setZero();
-        constraint->C().resize(1,3);
-        constraint->C().insert(0,2) = 1.0;
-        constraint->dl().resize(1);
-        constraint->dl()[0] = -1e10;
-        constraint->du().resize(1);
-        constraint->du()[0] = 0.0;
-        //constraint->debugLevel() = 2;
-        constraints0.push_back(constraint);
-      }
-      {
-        // roll = 0
+      // pitch > 0
+      std::shared_ptr<ik_constraint2::RegionConstraint> constraint = std::make_shared<ik_constraint2::RegionConstraint>();
+      constraint->A_link() = param->robot->rootLink();
+      constraint->A_localpos().translation() = cnoid::Vector3(0.1,0.0,0.0);
+      constraint->B_link() = param->robot->rootLink();
+      constraint->eval_link() = nullptr;
+      constraint->weightR().setZero();
+      constraint->C().resize(1,3);
+      constraint->C().insert(0,2) = 1.0;
+      constraint->dl().resize(1);
+      constraint->dl()[0] = -1e10;
+      constraint->du().resize(1);
+      constraint->du()[0] = 0.0;
+      //constraint->debugLevel() = 2;
+      constraints0.push_back(constraint);
+    }
+    {
+      // pitch < 90
+      std::shared_ptr<ik_constraint2::RegionConstraint> constraint = std::make_shared<ik_constraint2::RegionConstraint>();
+      constraint->A_link() = param->robot->rootLink();
+      constraint->A_localpos().translation() = cnoid::Vector3(0.0,0.0,-0.1);
+      constraint->B_link() = param->robot->rootLink();
+      constraint->eval_link() = nullptr;
+      constraint->weightR().setZero();
+      constraint->C().resize(1,3);
+      constraint->C().insert(0,2) = 1.0;
+      constraint->dl().resize(1);
+      constraint->dl()[0] = -1e10;
+      constraint->du().resize(1);
+      constraint->du()[0] = 0.0;
+      //constraint->debugLevel() = 2;
+      constraints0.push_back(constraint);
+    }
+    {
+      // roll = 0
+      std::shared_ptr<ik_constraint2::PositionConstraint> constraint = std::make_shared<ik_constraint2::PositionConstraint>();
+      constraint->A_link() = param->robot->rootLink();
+      constraint->A_localpos().translation() = cnoid::Vector3(0.0,0.1,0.0);
+      constraint->B_link() = param->robot->rootLink();
+      constraint->B_localpos().translation() = cnoid::Vector3(0.0,-0.1,0.0);
+      constraint->eval_link() = nullptr;
+      constraint->weight() << 0.0, 0.0, 1.0, 0.0, 0.0, 0.0;
+      //constraint->debugLevel() = 2;
+      constraints0.push_back(constraint);
+    }
+    constraints.push_back(constraints0);
+
+    std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints1;
+    for (int i=0; i<param->constraints.size(); i++) {
+      constraints1.push_back(param->constraints[i]);
+    }
+
+    // まず今触れている接触を僅かに離す. 初期状態をsatisfiedにするため.
+    {
+      std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > breakConstraints;
+      for (int i=0; i<param->currentContactPoints.size(); i++) {
+        // link1のlocalPoseはZ正方向が接触から離れる方向である前提
         std::shared_ptr<ik_constraint2::PositionConstraint> constraint = std::make_shared<ik_constraint2::PositionConstraint>();
-        constraint->A_link() = param->robot->rootLink();
-        constraint->A_localpos().translation() = cnoid::Vector3(0.0,0.1,0.0);
-        constraint->B_link() = param->robot->rootLink();
-        constraint->B_localpos().translation() = cnoid::Vector3(0.0,-0.1,0.0);
+        constraint->A_link() = param->currentContactPoints[i].link1;
+        constraint->A_localpos() = param->currentContactPoints[i].localPose1;
+        constraint->A_localpos().translation() += param->currentContactPoints[i].localPose1.linear() * cnoid::Vector3(0,0,-0.02); // 0.02だけ離す
+        constraint->B_link() = param->currentContactPoints[i].link2;
+        constraint->B_localpos() = param->currentContactPoints[i].localPose2;
         constraint->eval_link() = nullptr;
-        constraint->weight() << 0.0, 0.0, 1.0, 0.0, 0.0, 0.0;
-        //constraint->debugLevel() = 2;
-        constraints0.push_back(constraint);
+        breakConstraints.push_back(constraint);
       }
-      constraints.push_back(constraints0);
+      std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > preConstraints{constraints0, constraints1, breakConstraints};
+      std::vector<std::shared_ptr<prioritized_qp_base::Task> > prevTasks;
+      prioritized_inverse_kinematics_solver2::solveIKLoop(param->variables,
+                                                          preConstraints,
+                                                          prevTasks,
+                                                          param->gikRootParam.pikParam
+                                                          );
     }
 
     std::shared_ptr<ik_constraint2::ORConstraint> conditions = std::make_shared<ik_constraint2::ORConstraint>();
     for(std::unordered_map<std::string, std::shared_ptr<Mode> >::const_iterator it=param->modes.begin(); it!=param->modes.end(); it++){
       conditions->children().push_back(it->second->generateCondition(environment, param->robot));
     }
-    std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints1{conditions};
-    for (int i=0; i<param->constraints.size(); i++) {
-      constraints1.push_back(param->constraints[i]);
-    }
+    constraints1.push_back(conditions);
     constraints.push_back(constraints1);
 
     for (int i=0; i<constraints.size(); i++) {
@@ -158,7 +181,6 @@ namespace wholebodycontact_locomotion_planner{
                  const std::vector<std::pair<std::vector<double>, std::string> > guidePath,
                  std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > >& outputPath // angle, contact
                  ) {
-    
     return true;
   }
 }

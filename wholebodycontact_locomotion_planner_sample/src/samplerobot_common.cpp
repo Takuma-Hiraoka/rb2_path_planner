@@ -56,7 +56,7 @@ namespace wholebodycontact_locomotion_planner_sample{
     cnoid::BodyLoader bodyLoader;
     param->robot = bodyLoader.load(ros::package::getPath("choreonoid") + "/share/model/SR1/SR1.body");
 
-    param->robot->rootLink()->p() = cnoid::Vector3(0,0,0.67);//cnoid::Vector3(0,0,0.65); // TODO 接触点をsolve内で離すこと. そうしないと始めにsatisfiedにならない
+    param->robot->rootLink()->p() = cnoid::Vector3(0,0,0.65);
     param->robot->rootLink()->v().setZero();
     param->robot->rootLink()->R() = cnoid::Matrix3::Identity();
     param->robot->rootLink()->w().setZero();
@@ -152,6 +152,27 @@ namespace wholebodycontact_locomotion_planner_sample{
 
       }
     } // abstractRobot
+
+    // currentContactPoint
+    param->currentContactPoints.clear();
+    {
+      {
+        wholebodycontact_locomotion_planner::Contact lleg;
+        lleg.name = "LLEG_ANKLE_R";
+        lleg.link1 = param->robot->link("LLEG_ANKLE_R");
+        lleg.localPose1.translation() = cnoid::Vector3(0.0,0.0,-0.045);
+        lleg.localPose2.translation() = cnoid::Vector3(0.0,0.09,0.0);
+        param->currentContactPoints.push_back(lleg);
+      }
+      {
+        wholebodycontact_locomotion_planner::Contact rleg;
+        rleg.name = "RLEG_ANKLE_R";
+        rleg.link1 = param->robot->link("RLEG_ANKLE_R");
+        rleg.localPose1.translation() = cnoid::Vector3(0.0,0.0,0.045);
+        rleg.localPose2.translation() = cnoid::Vector3(0.0,-0.09,0.045);
+        param->currentContactPoints.push_back(rleg);
+      }
+    }
 
     param->constraints.clear();
     // environmental collision
