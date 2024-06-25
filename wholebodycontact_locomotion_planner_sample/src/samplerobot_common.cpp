@@ -7,6 +7,8 @@
 #include <choreonoid_bullet/choreonoid_bullet.h>
 #include <choreonoid_cddlib/choreonoid_cddlib.h>
 #include <cnoid/MeshExtractor>
+#include <cnoid/YAMLReader>
+#include <ik_constraint2_vclip/ik_constraint2_vclip.h>
 
 namespace wholebodycontact_locomotion_planner_sample{
   inline void addMesh(cnoid::SgMeshPtr model, std::shared_ptr<cnoid::MeshExtractor> meshExtractor){
@@ -54,7 +56,7 @@ namespace wholebodycontact_locomotion_planner_sample{
     cnoid::BodyLoader bodyLoader;
     param->robot = bodyLoader.load(ros::package::getPath("choreonoid") + "/share/model/SR1/SR1.body");
 
-    param->robot->rootLink()->p() = cnoid::Vector3(0,0,0.67);//cnoid::Vector3(0,0,0.65); // TODO 接触点をsolve内で離すこと. そうしないと始めにsatisfiedにならない
+    param->robot->rootLink()->p() = cnoid::Vector3(0,0,0.65);
     param->robot->rootLink()->v().setZero();
     param->robot->rootLink()->R() = cnoid::Matrix3::Identity();
     param->robot->rootLink()->w().setZero();
@@ -96,6 +98,21 @@ namespace wholebodycontact_locomotion_planner_sample{
       cnoid::Affine3 transform = cnoid::Affine3::Identity();
       transform.linear() *= 1.2;
       for (int i=0; i<abstractRobot->numLinks(); i++) {
+        if(param->robot->link(i)->name() == "LLEG_ANKLE_P" ||
+           param->robot->link(i)->name() == "RLEG_ANKLE_P" ||
+           param->robot->link(i)->name() == "LLEG_HIP_P" ||
+           param->robot->link(i)->name() == "RLEG_HIP_P" ||
+           param->robot->link(i)->name() == "LLEG_HIP_R" ||
+           param->robot->link(i)->name() == "RLEG_HIP_R" ||
+           param->robot->link(i)->name() == "LARM_WRIST_P" ||
+           param->robot->link(i)->name() == "RARM_WRIST_P" ||
+           param->robot->link(i)->name() == "LARM_WRIST_Y" ||
+           param->robot->link(i)->name() == "RARM_WRIST_Y" ||
+           param->robot->link(i)->name() == "LARM_SHOULDER_Y" ||
+           param->robot->link(i)->name() == "RARM_SHOULDER_Y" ||
+           param->robot->link(i)->name() == "LARM_SHOULDER_P" ||
+           param->robot->link(i)->name() == "RARM_SHOULDER_P" ||
+           param->robot->link(i)->name() == "WAIST_P") continue;
         // 拡大凸包meshを作る
         cnoid::SgNodePtr collisionshape = param->robot->link(i)->collisionShape();
         Eigen::Matrix<double,3,Eigen::Dynamic> vertices;
@@ -104,7 +121,7 @@ namespace wholebodycontact_locomotion_planner_sample{
           // 拡大
           {
             for (int v=0; v<model->vertices()->size(); v++) {
-              model->vertices()->at(v) += model->vertices()->at(v).cast<cnoid::Vector3f::Scalar>() / (model->vertices()->at(v).cast<cnoid::Vector3f::Scalar>()).norm() * 0.3;
+              model->vertices()->at(v) += model->vertices()->at(v).cast<cnoid::Vector3f::Scalar>() / (model->vertices()->at(v).cast<cnoid::Vector3f::Scalar>()).norm() * 0.1;
             }
           }
           // 凸包
@@ -136,6 +153,82 @@ namespace wholebodycontact_locomotion_planner_sample{
       }
     } // abstractRobot
 
+    // currentContactPoint
+    param->currentContactPoints.clear();
+    {
+      {
+        wholebodycontact_locomotion_planner::Contact lleg;
+        lleg.name = "LLEG_ANKLE_R";
+        lleg.link1 = param->robot->link("LLEG_ANKLE_R");
+        lleg.localPose1.translation() = cnoid::Vector3(0.0,0.0,-0.045);
+        lleg.localPose2.translation() = cnoid::Vector3(0.0,0.09,0.0);
+        param->currentContactPoints.push_back(lleg);
+      }
+      {
+        wholebodycontact_locomotion_planner::Contact rleg;
+        rleg.name = "RLEG_ANKLE_R";
+        rleg.link1 = param->robot->link("RLEG_ANKLE_R");
+        rleg.localPose1.translation() = cnoid::Vector3(0.0,0.0,0.045);
+        rleg.localPose2.translation() = cnoid::Vector3(0.0,-0.09,0.045);
+        param->currentContactPoints.push_back(rleg);
+      }
+    }
+
+    param->constraints.clear();
+    // environmental collision
+    for (int i=0; i<param->robot->numLinks(); i++) {
+      if(param->robot->link(i)->name() == "LLEG_ANKLE_P" ||
+         param->robot->link(i)->name() == "RLEG_ANKLE_P" ||
+         param->robot->link(i)->name() == "LLEG_HIP_P" ||
+         param->robot->link(i)->name() == "RLEG_HIP_P" ||
+         param->robot->link(i)->name() == "LLEG_HIP_R" ||
+         param->robot->link(i)->name() == "RLEG_HIP_R" ||
+         param->robot->link(i)->name() == "LARM_WRIST_P" ||
+         param->robot->link(i)->name() == "RARM_WRIST_P" ||
+         param->robot->link(i)->name() == "LARM_WRIST_Y" ||
+         param->robot->link(i)->name() == "RARM_WRIST_Y" ||
+         param->robot->link(i)->name() == "LARM_SHOULDER_Y" ||
+         param->robot->link(i)->name() == "RARM_SHOULDER_Y" ||
+         param->robot->link(i)->name() == "LARM_SHOULDER_P" ||
+         param->robot->link(i)->name() == "RARM_SHOULDER_P" ||
+         param->robot->link(i)->name() == "WAIST_P") continue;
+      std::shared_ptr<ik_constraint2_distance_field::DistanceFieldCollisionConstraint> constraint = std::make_shared<ik_constraint2_distance_field::DistanceFieldCollisionConstraint>();
+      constraint->A_link() = param->robot->link(i);
+      constraint->field() = field;
+      constraint->tolerance() = 0.06; // ちょうど干渉すると法線ベクトルが変になることがあるので, 1回のiterationで動きうる距離よりも大きくせよ.
+      constraint->precision() = 0.05; // 角で不正確になりがちなので, toleranceを大きくしてprecisionも大きくして、best effort的にする. precisionはdistanceFieldのサイズの倍数より大きくする. 大きく動くのでつま先が近かったときにつま先は近くならないがかかとが地面にめり込む、ということは起こりうる.
+      constraint->ignoreDistance() = 0.5; // 大きく動くので、ignoreも大きくする必要がある
+      //      constraint->maxError() = 0.1; // めり込んだら一刻も早く離れたい
+      constraint->updateBounds(); // キャッシュを内部に作る. キャッシュを作ったあと、10スレッドぶんコピーする方が速い
+      param->constraints.push_back(constraint);
+    }
+    // task: self collision
+    {
+      std::vector<std::string> rarm{"RARM_SHOULDER_R", "RARM_ELBOW", "RARM_WRIST_R"};
+      std::vector<std::string> larm{"LARM_SHOULDER_R", "LARM_ELBOW", "LARM_WRIST_R"};
+      std::vector<std::string> rleg{"RLEG_HIP_Y", "RLEG_KNEE"};
+      std::vector<std::string> lleg{"LLEG_HIP_Y", "LLEG_KNEE"};
+      std::vector<std::string> torso{"WAIST", "WAIST_R", "CHEST"};
+
+      std::vector<std::vector<std::string> > pairs;
+      for(int i=0;i<rarm.size();i++) for(int j=0;j<larm.size();j++) pairs.push_back(std::vector<std::string>{rarm[i],larm[j]});
+      for(int i=0;i<rarm.size();i++) for(int j=0;j<rleg.size();j++) pairs.push_back(std::vector<std::string>{rarm[i],rleg[j]});
+      for(int i=0;i<rarm.size();i++) for(int j=0;j<lleg.size();j++) pairs.push_back(std::vector<std::string>{rarm[i],lleg[j]});
+      for(int i=0;i<rarm.size();i++) for(int j=0;j<torso.size();j++) pairs.push_back(std::vector<std::string>{rarm[i],torso[j]});
+      for(int i=0;i<larm.size();i++) for(int j=0;j<rleg.size();j++) pairs.push_back(std::vector<std::string>{larm[i],rleg[j]});
+      for(int i=0;i<larm.size();i++) for(int j=0;j<lleg.size();j++) pairs.push_back(std::vector<std::string>{larm[i],lleg[j]});
+      for(int i=0;i<larm.size();i++) for(int j=0;j<torso.size();j++) pairs.push_back(std::vector<std::string>{larm[i],torso[j]});
+      for(int i=0;i<rleg.size();i++) for(int j=0;j<lleg.size();j++) pairs.push_back(std::vector<std::string>{rleg[i],lleg[j]});
+
+      for(int i=0;i<pairs.size();i++){
+        std::shared_ptr<ik_constraint2_vclip::VclipCollisionConstraint> constraint = std::make_shared<ik_constraint2_vclip::VclipCollisionConstraint>();
+        constraint->A_link() = param->robot->link(pairs[i][0]);
+        constraint->B_link() = param->robot->link(pairs[i][1]);
+        constraint->tolerance() = 0.01;
+        param->constraints.push_back(constraint);
+      }
+    }
+
     param->modes.clear();
     {
       std::shared_ptr<wholebodycontact_locomotion_planner::Mode> mode = std::make_shared<wholebodycontact_locomotion_planner::Mode>();
@@ -144,6 +237,21 @@ namespace wholebodycontact_locomotion_planner_sample{
       {
         // reachability
         for (int i=0; i<param->robot->numLinks(); i++) {
+          if(param->robot->link(i)->name() == "LLEG_ANKLE_P" ||
+             param->robot->link(i)->name() == "RLEG_ANKLE_P" ||
+             param->robot->link(i)->name() == "LLEG_HIP_P" ||
+             param->robot->link(i)->name() == "RLEG_HIP_P" ||
+             param->robot->link(i)->name() == "LLEG_HIP_R" ||
+             param->robot->link(i)->name() == "RLEG_HIP_R" ||
+             param->robot->link(i)->name() == "LARM_WRIST_P" ||
+             param->robot->link(i)->name() == "RARM_WRIST_P" ||
+             param->robot->link(i)->name() == "LARM_WRIST_Y" ||
+             param->robot->link(i)->name() == "RARM_WRIST_Y" ||
+             param->robot->link(i)->name() == "LARM_SHOULDER_Y" ||
+             param->robot->link(i)->name() == "RARM_SHOULDER_Y" ||
+             param->robot->link(i)->name() == "LARM_SHOULDER_P" ||
+             param->robot->link(i)->name() == "RARM_SHOULDER_P" ||
+             param->robot->link(i)->name() == "WAIST_P") continue;
           std::shared_ptr<ik_constraint2_bullet::BulletKeepCollisionConstraint> constraint = std::make_shared<ik_constraint2_bullet::BulletKeepCollisionConstraint>();
           constraint->A_link() = param->robot->link(i);
           constraint->A_link_bulletModel() = constraint->A_link();
@@ -162,19 +270,61 @@ namespace wholebodycontact_locomotion_planner_sample{
           constraint->updateBounds(); // キャッシュを内部に作る.
           mode->reachabilityConstraints.push_back(constraint);
         }
-        // environmental collision
-        for (int i=0; i<param->robot->numLinks(); i++) {
-          std::shared_ptr<ik_constraint2_distance_field::DistanceFieldCollisionConstraint> constraint = std::make_shared<ik_constraint2_distance_field::DistanceFieldCollisionConstraint>();
-          constraint->A_link() = param->robot->link(i);
-          constraint->field() = field;
-          constraint->tolerance() = 0.06; // ちょうど干渉すると法線ベクトルが変になることがあるので, 1回のiterationで動きうる距離よりも大きくせよ.
-          constraint->precision() = 0.05; // 角で不正確になりがちなので, toleranceを大きくしてprecisionも大きくして、best effort的にする. precisionはdistanceFieldのサイズの倍数より大きくする. 大きく動くのでつま先が近かったときにつま先は近くならないがかかとが地面にめり込む、ということは起こりうる.
-          constraint->ignoreDistance() = 0.5; // 大きく動くので、ignoreも大きくする必要がある
-          constraint->maxError() = 0.1; // めり込んだら一刻も早く離れたい
-          constraint->updateBounds(); // キャッシュを内部に作る. キャッシュを作ったあと、10スレッドぶんコピーする方が速い
-          mode->collisionConstraints.push_back(constraint);
-        }
       }
     } // mode1
+
+    param->contactPoints.clear();
+    std::string contactFileName = ros::package::getPath("wholebodycontact_locomotion_planner_sample") + "/config/sample_config.yaml";
+    cnoid::YAMLReader reader;
+    cnoid::MappingPtr node;
+    std::string prevLinkName = "";
+    std::vector<wholebodycontact_locomotion_planner::ContactPoint> contactPoints;
+    try {
+      node = reader.loadDocument(contactFileName)->toMapping();
+    } catch(const cnoid::ValueNode::Exception& ex) {
+      std::cerr << ex.message()  << std::endl;
+    }
+    if(node){
+      cnoid::Listing* tactileSensorList = node->findListing("tactile_sensor");
+      if (!tactileSensorList->isValid()) {
+        std::cerr << "tactile_sensor list is not valid" << std::endl;
+      }else{
+        for (int i=0; i< tactileSensorList->size(); i++) {
+          cnoid::Mapping* info = tactileSensorList->at(i)->toMapping();
+          std::string linkName;
+          // linkname
+          info->extract("link", linkName);
+          if (linkName != prevLinkName) {
+            if (prevLinkName != "") {
+              param->contactPoints[prevLinkName] = contactPoints;
+            }
+            prevLinkName = linkName;
+            contactPoints.clear();
+          }
+          wholebodycontact_locomotion_planner::ContactPoint sensor;
+          // translation
+          cnoid::ValueNodePtr translation_ = info->extract("translation");
+          if(translation_){
+            cnoid::ListingPtr translationTmp = translation_->toListing();
+            if(translationTmp->size()==3){
+              sensor.translation = cnoid::Vector3(translationTmp->at(0)->toDouble(), translationTmp->at(1)->toDouble(), translationTmp->at(2)->toDouble());
+            }
+          }
+          // rotation
+          cnoid::ValueNodePtr rotation_ = info->extract("rotation");
+          if(rotation_){
+            cnoid::ListingPtr rotationTmp = rotation_->toListing();
+            if(rotationTmp->size() == 4){
+              sensor.rotation = cnoid::AngleAxisd(rotationTmp->at(3)->toDouble(),
+                                                  cnoid::Vector3{rotationTmp->at(0)->toDouble(), rotationTmp->at(1)->toDouble(), rotationTmp->at(2)->toDouble()}).toRotationMatrix();
+            }
+          }
+          contactPoints.push_back(sensor);
+        }
+        if (prevLinkName != "") {
+          param->contactPoints[prevLinkName] = contactPoints;
+        }
+      }
+    }
   }
 }

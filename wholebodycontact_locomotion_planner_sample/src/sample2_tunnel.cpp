@@ -30,15 +30,15 @@ namespace wholebodycontact_locomotion_planner_sample{
     param->gikRootParam.viewer = viewer;
     param->gikRootParam.drawLoop = 1;
     param->gikRootParam.debugLevel = 0;
+    param->gikRootParam.pikParam.debugLevel = 0;
     param->gikRootParam.timeout = 20;
-    param->gikRootParam.goalBias = 0.2;
-    param->gikRootParam.threads = 20;
+    param->gikRootParam.threads = 10;
 
     cnoid::Isometry3 goal = param->robot->rootLink()->T();
     goal.translation()[0] += 3.3;
     goal.translation()[2] -= 0.2;
 
-    std::vector<std::vector<double> > path;
+    std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<wholebodycontact_locomotion_planner::Contact> > > > path;
 
     wholebodycontact_locomotion_planner::solveCBPath(environment,
                                                      goal,
@@ -54,13 +54,16 @@ namespace wholebodycontact_locomotion_planner_sample{
     while(true) {
       // main loop
       for(int i=0;i<path.size();i++){
-        global_inverse_kinematics_solver::frame2Link(path.at(i),param->variables);
+        global_inverse_kinematics_solver::frame2Link(path.at(i).first,param->variables);
         param->robot->calcForwardKinematics(false);
         param->robot->calcCenterOfMass();
-        global_inverse_kinematics_solver::frame2Link(path.at(i),abstractVariables);
+        global_inverse_kinematics_solver::frame2Link(path.at(i).first,abstractVariables);
         abstractRobot->calcForwardKinematics(false);
         abstractRobot->calcCenterOfMass();
         viewer->drawObjects();
+        std::cerr << "contacts :";
+        for (int j=0; j<path.at(i).second.size(); j++) std::cerr << " " << path.at(i).second[j]->link1->name();
+        std::cerr << std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
     }

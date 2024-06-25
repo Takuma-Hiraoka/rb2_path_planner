@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   choreonoid_qhull
   choreonoid_bullet
   choreonoid_cddlib
+  ik_constraint2_vclip
   roslib
   )
 
