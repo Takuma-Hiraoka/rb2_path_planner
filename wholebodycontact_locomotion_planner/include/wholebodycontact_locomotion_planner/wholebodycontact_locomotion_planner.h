@@ -19,6 +19,7 @@ namespace wholebodycontact_locomotion_planner{
     std::unordered_map<std::string, std::shared_ptr<Mode> > modes;
     std::unordered_map<std::string, std::vector<ContactPoint> > contactPoints; // linkName, ContactPoint
     std::vector<Contact> currentContactPoints;
+    std::vector<std::vector<cnoid::LinkPtr> > prioritizedLinks;
     global_inverse_kinematics_solver::GIKParam gikRootParam;
     bool OptimizeTrajectory = false; // 関節角度軌道を最適化、近いstate同士をショートカットするかどうか. もともと粗い軌道でありショートカットできる数は少なく、計算時間が増えるデメリットのほうが大きい.
     trajectory_optimizer::TOParam toParam;
@@ -50,7 +51,7 @@ namespace wholebodycontact_locomotion_planner{
                    );
   bool solveWBLP(const std::shared_ptr<Environment>& environment,
                  const std::shared_ptr<WBLPParam>& param,
-                 const std::vector<std::pair<std::vector<double>, std::string> > guidePath,
+                 const std::vector<std::pair<std::vector<double>,std::vector<std::shared_ptr<Contact> > > >& guidePath,
                  std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > >& outputPath // angle, contact
                  );
 }

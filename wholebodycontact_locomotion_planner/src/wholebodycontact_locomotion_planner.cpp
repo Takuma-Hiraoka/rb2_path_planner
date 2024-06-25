@@ -6,6 +6,10 @@ namespace wholebodycontact_locomotion_planner{
                    const std::shared_ptr<WBLPParam>& param,
                    std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > >& outputPath // angle. environment contact candidate
                    ){
+    std::vector<double> initialPose;
+    global_inverse_kinematics_solver::link2Frame(param->variables, initialPose);
+
+
     std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints;
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints0;
     {
@@ -149,7 +153,7 @@ namespace wholebodycontact_locomotion_planner{
             contact->link1 = it->second->reachabilityConstraints[j]->A_link();
             contact->localPose1 = cnoid::Isometry3::Identity(); // WBLP時に決定する
             contact->link2 = nullptr;
-            contact->localPose2.translation() = it->second->reachabilityConstraints[j]->currentp();
+            contact->localPose2.translation() = it->second->reachabilityConstraints[j]->currentp(); // TODO 環境から姿勢を出す.
             Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6); // TODO 干渉形状から出す？
             C.insert(0,2) = 1.0;
             C.insert(1,0) = 1.0; C.insert(1,2) = 0.2;
@@ -174,15 +178,48 @@ namespace wholebodycontact_locomotion_planner{
       }
       outputPath[i].second = contacts;
     }
+    global_inverse_kinematics_solver::frame2Link(initialPose,param->variables);
     return true;
 
   }
 
   bool solveWBLP(const std::shared_ptr<Environment>& environment,
                  const std::shared_ptr<WBLPParam>& param,
-                 const std::vector<std::pair<std::vector<double>, std::string> > guidePath,
+                 const std::vector<std::pair<std::vector<double>,std::vector<std::shared_ptr<Contact> > > >& guidePath,
                  std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > >& outputPath // angle, contact
                  ) {
+    int pathId=0;
+    while(pathId < guidePath.size()) {
+      std::vector<std::shared_ptr<Contact> > currentContact = guidePath[pathId].second;
+      // 接触が切り替わる直前のIDを探す
+      int nextId;
+      for (nextId=pathId;nextId<guidePath.size();nextId++) {
+        if(currentContact.size() != guidePath[nextId].second.size()) break;
+        for (int i=0; i<currentContact.size(); i++) {
+          if (currentContact[i]->name != guidePath[nextId].second[i]->name) break;
+        }
+      }
+
+      std::vector<std::shared_ptr<Contact> > moveCandidate = currentContact;
+      {
+        // moveCandidateのうち、guidePath[nextId]と比較して最も離れているcontactを一つ選ぶ
+        std::shared_ptr<Contact> moveContact;
+        double maxDist = 0;
+        for (int i=0; i<moveCandidate.size(); i++) {
+          for (int j=0; j<guidePath[nextId].second.size(); j++) {
+            if (moveCandidate[i]->name == guidePath[nextId].second[j]->name) {
+              double dist = (moveCandidate[i]->localPose2.translation() - guidePath[nextId].second[j]->localPose2.translation()).sum();
+              cnoid::AngleAxis angleAxis = cnoid::AngleAxis(moveCandidate[i]->localPose2.linear().transpose() * guidePath[nextId].second[j]->localPose2.linear());
+              dist += (angleAxis.angle()*angleAxis.axis()).sum();
+              if (dist > maxDist) {
+                maxDist = dist;
+                moveContact = moveCandidate[i];
+              }
+            }
+          }
+        }
+      }
+    }
     return true;
   }
 }

@@ -273,6 +273,14 @@ namespace wholebodycontact_locomotion_planner_sample{
       }
     } // mode1
 
+    param->prioritizedLinks.clear();
+    std::vector<cnoid::LinkPtr> prioritizedLinks1{param->robot->link("LLEG_ANKLE_R"),param->robot->link("RLEG_ANKLE_R")};
+    std::vector<cnoid::LinkPtr> prioritizedLinks2{param->robot->link("LARM_WRIST_R"),param->robot->link("LARM_WRIST_R"),param->robot->link("WAIST"),param->robot->link("CHEST")};
+    std::vector<cnoid::LinkPtr> prioritizedLinks3{param->robot->link("LLEG_KNEE"),param->robot->link("RLEG_KNEE"),param->robot->link("LLEG_HIPY"),param->robot->link("RLEG_HIPY"),param->robot->link("LARM_ELBOW"),param->robot->link("RARM_ELBOW"),param->robot->link("LARM_SHOULDER_R"),param->robot->link("RARM_SHOULDER_R"),param->robot->link("WAIST_R")};
+    param->prioritizedLinks.push_back(prioritizedLinks1);
+    param->prioritizedLinks.push_back(prioritizedLinks2);
+    param->prioritizedLinks.push_back(prioritizedLinks3);
+
     param->contactPoints.clear();
     std::string contactFileName = ros::package::getPath("wholebodycontact_locomotion_planner_sample") + "/config/sample_config.yaml";
     cnoid::YAMLReader reader;
