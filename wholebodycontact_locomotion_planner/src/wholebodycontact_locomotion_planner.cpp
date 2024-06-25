@@ -135,6 +135,8 @@ namespace wholebodycontact_locomotion_planner{
     for (int i=0; i<path->size(); i++) {
       outputPath[i].first = path->at(i);
       global_inverse_kinematics_solver::frame2Link(path->at(i),param->variables);
+      param->robot->calcForwardKinematics(false);
+      param->robot->calcCenterOfMass();
       // isSatisfiedであるリンクを全て接触させればSCFRが存在するmodeがすくなくとも一つあることをGIKで保証済み
       // TODO mode選択. どのみち全リンク接触でも優先度をつける等の工夫をするならmode自体が不要？
       std::vector<std::shared_ptr<Contact> >contacts;
