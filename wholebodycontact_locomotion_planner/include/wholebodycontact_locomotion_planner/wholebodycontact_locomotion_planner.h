@@ -18,7 +18,7 @@ namespace wholebodycontact_locomotion_planner{
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
     std::unordered_map<std::string, std::shared_ptr<Mode> > modes;
     std::unordered_map<std::string, std::vector<ContactPoint> > contactPoints; // linkName, ContactPoint
-    std::vector<Contact> currentContactPoints;
+    std::vector<std::shared_ptr<Contact> > currentContactPoints;
     std::vector<std::vector<cnoid::LinkPtr> > prioritizedLinks;
     global_inverse_kinematics_solver::GIKParam gikRootParam;
     bool OptimizeTrajectory = false; // 関節角度軌道を最適化、近いstate同士をショートカットするかどうか. もともと粗い軌道でありショートカットできる数は少なく、計算時間が増えるデメリットのほうが大きい.
@@ -54,6 +54,11 @@ namespace wholebodycontact_locomotion_planner{
                  const std::vector<std::pair<std::vector<double>,std::vector<std::shared_ptr<Contact> > > >& guidePath,
                  std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > >& outputPath // angle, contact
                  );
+  bool solveContactIK(const std::shared_ptr<WBLPParam>& param,
+                      const std::vector<std::shared_ptr<Contact> >& stopContact,
+                      const std::shared_ptr<Contact>& nextContact,
+                      bool attach,
+                      bool slide);
 }
 
 #endif

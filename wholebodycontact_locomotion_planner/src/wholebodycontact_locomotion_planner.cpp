@@ -71,11 +71,11 @@ namespace wholebodycontact_locomotion_planner{
       for (int i=0; i<param->currentContactPoints.size(); i++) {
         // link1のlocalPoseはZ正方向が接触から離れる方向である前提
         std::shared_ptr<ik_constraint2::PositionConstraint> constraint = std::make_shared<ik_constraint2::PositionConstraint>();
-        constraint->A_link() = param->currentContactPoints[i].link1;
-        constraint->A_localpos() = param->currentContactPoints[i].localPose1;
-        constraint->A_localpos().translation() += param->currentContactPoints[i].localPose1.linear() * cnoid::Vector3(0,0,-0.02); // 0.02だけ離す
-        constraint->B_link() = param->currentContactPoints[i].link2;
-        constraint->B_localpos() = param->currentContactPoints[i].localPose2;
+        constraint->A_link() = param->currentContactPoints[i]->link1;
+        constraint->A_localpos() = param->currentContactPoints[i]->localPose1;
+        constraint->A_localpos().translation() += param->currentContactPoints[i]->localPose1.linear() * cnoid::Vector3(0,0,-0.02); // 0.02だけ離す
+        constraint->B_link() = param->currentContactPoints[i]->link2;
+        constraint->B_localpos() = param->currentContactPoints[i]->localPose2;
         constraint->eval_link() = nullptr;
         breakConstraints.push_back(constraint);
       }
@@ -190,10 +190,10 @@ namespace wholebodycontact_locomotion_planner{
                  ) {
     int pathId=0;
     while(pathId < guidePath.size()) {
-      std::vector<std::shared_ptr<Contact> > currentContact = guidePath[pathId].second;
+      std::vector<std::shared_ptr<Contact> > currentContact = (pathId == 0) ? param->currentContactPoints : guidePath[pathId].second;
       // 接触が切り替わる直前のIDを探す
       int nextId;
-      for (nextId=pathId;nextId<guidePath.size();nextId++) {
+      for (nextId=pathId+1;nextId<guidePath.size();nextId++) {
         if(currentContact.size() != guidePath[nextId].second.size()) break;
         for (int i=0; i<currentContact.size(); i++) {
           if (currentContact[i]->name != guidePath[nextId].second[i]->name) break;
@@ -218,8 +218,49 @@ namespace wholebodycontact_locomotion_planner{
             }
           }
         }
+        // 選ばれたcontactだけ、IKが解けなくなるまでguidePathを進める
+        
       }
     }
     return true;
+  }
+
+  bool solveContactIK(const std::shared_ptr<WBLPParam>& param,
+                      const std::vector<std::shared_ptr<Contact> >& stopContacts,
+                      const std::shared_ptr<Contact>& nextContact,
+                      bool attach,
+                      bool slide) {
+    std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints;
+    std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints0;
+    for (int i=0; i<param->constraints.size(); i++) {
+      constraints0.push_back(param->constraints[i]);
+    }
+    std::shared_ptr<ik_constraint2_scfr::ScfrConstraint> scfrConstraint = std::make_shared<ik_constraint2_scfr::ScfrConstraint>();
+    scfrConstraint->A_robot() = param->robot;
+    std::vector<cnoid::Isometry3> poses;
+    std::vector<Eigen::SparseMatrix<double,Eigen::RowMajor> > As;
+    std::vector<cnoid::VectorX> bs;
+    std::vector<Eigen::SparseMatrix<double,Eigen::RowMajor> > Cs;
+    std::vector<cnoid::VectorX> dls;
+    std::vector<cnoid::VectorX> dus;
+    {
+      std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints1;
+      for (int i=0; i<stopContacts.size(); i++) {
+        if (stopContacts[i]->name == nextContact->name) continue;
+        std::shared_ptr<ik_constraint2::PositionConstraint> constraint = std::make_shared<ik_constraint2::PositionConstraint>();
+        constraint->A_link() = stopContacts[i]->link1;
+        constraint->A_localpos() = stopContacts[i]->localPose1;
+        constraint->B_link() = stopContacts[i]->link2;
+        constraint->B_localpos() = stopContacts[i]->localPose2;
+        constraint->eval_link() = constraint->A_link();
+        constraint->eval_localR() = constraint->A_localpos().rotation();
+        constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
+        constraints1.push_back(constraint);
+        Cs.push_back(stopContacts[i]->C);
+        dls.push_back(stopContacts[i]->dl);
+        dus.push_back(stopContacts[i]->du);
+      }
+      
+    }
   }
 }

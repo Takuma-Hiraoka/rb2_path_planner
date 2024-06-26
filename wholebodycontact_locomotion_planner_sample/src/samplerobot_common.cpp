@@ -157,19 +157,55 @@ namespace wholebodycontact_locomotion_planner_sample{
     param->currentContactPoints.clear();
     {
       {
-        wholebodycontact_locomotion_planner::Contact lleg;
-        lleg.name = "LLEG_ANKLE_R";
-        lleg.link1 = param->robot->link("LLEG_ANKLE_R");
-        lleg.localPose1.translation() = cnoid::Vector3(0.0,0.0,-0.045);
-        lleg.localPose2.translation() = cnoid::Vector3(0.0,0.09,0.0);
+        std::shared_ptr<wholebodycontact_locomotion_planner::Contact> lleg = std::make_shared<wholebodycontact_locomotion_planner::Contact>();
+        lleg->name = "LLEG_ANKLE_R";
+        lleg->link1 = param->robot->link("LLEG_ANKLE_R");
+        lleg->localPose1.translation() = cnoid::Vector3(0.0,0.0,-0.045);
+        lleg->localPose2.translation() = cnoid::Vector3(0.0,0.09,0.0);
+        Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6);
+        C.insert(0,2) = 1.0;
+        C.insert(1,0) = 1.0; C.insert(1,2) = 0.2;
+        C.insert(2,0) = -1.0; C.insert(2,2) = 0.2;
+        C.insert(3,1) = 1.0; C.insert(3,2) = 0.2;
+        C.insert(4,1) = -1.0; C.insert(4,2) = 0.2;
+        C.insert(5,2) = 0.05; C.insert(5,3) = 1.0;
+        C.insert(6,2) = 0.05; C.insert(6,3) = -1.0;
+        C.insert(7,2) = 0.05; C.insert(7,4) = 1.0;
+        C.insert(8,2) = 0.05; C.insert(8,4) = -1.0;
+        C.insert(9,2) = 0.005; C.insert(9,5) = 1.0;
+        C.insert(10,2) = 0.005; C.insert(10,5) = -1.0;
+        lleg->C = C;
+        cnoid::VectorX dl = Eigen::VectorXd::Zero(11);
+        lleg->dl = dl;
+        cnoid::VectorX du = 1e10 * Eigen::VectorXd::Ones(11);
+        du[0] = 2000.0;
+        lleg->du = du;
         param->currentContactPoints.push_back(lleg);
       }
       {
-        wholebodycontact_locomotion_planner::Contact rleg;
-        rleg.name = "RLEG_ANKLE_R";
-        rleg.link1 = param->robot->link("RLEG_ANKLE_R");
-        rleg.localPose1.translation() = cnoid::Vector3(0.0,0.0,0.045);
-        rleg.localPose2.translation() = cnoid::Vector3(0.0,-0.09,0.045);
+        std::shared_ptr<wholebodycontact_locomotion_planner::Contact> rleg = std::make_shared<wholebodycontact_locomotion_planner::Contact>();
+        rleg->name = "RLEG_ANKLE_R";
+        rleg->link1 = param->robot->link("RLEG_ANKLE_R");
+        rleg->localPose1.translation() = cnoid::Vector3(0.0,0.0,0.045);
+        rleg->localPose2.translation() = cnoid::Vector3(0.0,-0.09,0.045);
+        Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6);
+        C.insert(0,2) = 1.0;
+        C.insert(1,0) = 1.0; C.insert(1,2) = 0.2;
+        C.insert(2,0) = -1.0; C.insert(2,2) = 0.2;
+        C.insert(3,1) = 1.0; C.insert(3,2) = 0.2;
+        C.insert(4,1) = -1.0; C.insert(4,2) = 0.2;
+        C.insert(5,2) = 0.05; C.insert(5,3) = 1.0;
+        C.insert(6,2) = 0.05; C.insert(6,3) = -1.0;
+        C.insert(7,2) = 0.05; C.insert(7,4) = 1.0;
+        C.insert(8,2) = 0.05; C.insert(8,4) = -1.0;
+        C.insert(9,2) = 0.005; C.insert(9,5) = 1.0;
+        C.insert(10,2) = 0.005; C.insert(10,5) = -1.0;
+        rleg->C = C;
+        cnoid::VectorX dl = Eigen::VectorXd::Zero(11);
+        rleg->dl = dl;
+        cnoid::VectorX du = 1e10 * Eigen::VectorXd::Ones(11);
+        du[0] = 2000.0;
+        rleg->du = du;
         param->currentContactPoints.push_back(rleg);
       }
     }

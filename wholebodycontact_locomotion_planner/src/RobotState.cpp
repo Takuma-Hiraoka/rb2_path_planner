@@ -1,6 +1,5 @@
 #include <wholebodycontact_locomotion_planner/RobotState.h>
 #include <choreonoid_cddlib/choreonoid_cddlib.h>
-#include <ik_constraint2_scfr/KeepCollisionScfrConstraint.h>
 
 namespace wholebodycontact_locomotion_planner {
   std::shared_ptr<ik_constraint2::IKConstraint> Mode::generateCondition(const std::shared_ptr<Environment>& environment, const cnoid::BodyPtr& robot){

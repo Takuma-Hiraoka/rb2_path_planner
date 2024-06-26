@@ -5,6 +5,7 @@
 #include <ik_constraint2/ik_constraint2.h>
 #include <ik_constraint2_distance_field/ik_constraint2_distance_field.h>
 #include <ik_constraint2_bullet/ik_constraint2_bullet.h>
+#include <ik_constraint2_scfr/KeepCollisionScfrConstraint.h>
 
 namespace wholebodycontact_locomotion_planner {
   class ContactableRegion {
