@@ -227,10 +227,9 @@ namespace wholebodycontact_locomotion_planner{
 
   bool solveContactIK(const std::shared_ptr<WBLPParam>& param,
                       const std::vector<std::shared_ptr<Contact> >& stopContacts,
-                      const std::shared_ptr<Contact>& nextContact,
+                      const std::vector<std::shared_ptr<Contact> >& nextContacts,
                       bool attach,
                       bool slide) {
-    std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints;
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints0;
     for (int i=0; i<param->constraints.size(); i++) {
       constraints0.push_back(param->constraints[i]);
@@ -243,24 +242,83 @@ namespace wholebodycontact_locomotion_planner{
     std::vector<Eigen::SparseMatrix<double,Eigen::RowMajor> > Cs;
     std::vector<cnoid::VectorX> dls;
     std::vector<cnoid::VectorX> dus;
+    std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints1;
     {
-      std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints1;
       for (int i=0; i<stopContacts.size(); i++) {
-        if (stopContacts[i]->name == nextContact->name) continue;
+        bool move=false;
+        for (int j=0; j<nextContacts.size(); j++) {
+          if (stopContacts[i]->name == nextContacts[j]->name) move=true;;
+        }
+        if (move) continue; // このcontactを動かす予定
         std::shared_ptr<ik_constraint2::PositionConstraint> constraint = std::make_shared<ik_constraint2::PositionConstraint>();
         constraint->A_link() = stopContacts[i]->link1;
         constraint->A_localpos() = stopContacts[i]->localPose1;
         constraint->B_link() = stopContacts[i]->link2;
         constraint->B_localpos() = stopContacts[i]->localPose2;
-        constraint->eval_link() = constraint->A_link();
-        constraint->eval_localR() = constraint->A_localpos().rotation();
+        constraint->eval_link() = nullptr;
         constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
         constraints1.push_back(constraint);
+        poses.push_back(stopContacts[i]->localPose2);
+        As.emplace_back(0,6);
+        bs.emplace_back(0);
         Cs.push_back(stopContacts[i]->C);
         dls.push_back(stopContacts[i]->dl);
         dus.push_back(stopContacts[i]->du);
       }
-      
+      for (int i=0; i<nextContacts.size(); i++) {
+        std::shared_ptr<ik_constraint2::PositionConstraint> constraint = std::make_shared<ik_constraint2::PositionConstraint>();
+        constraint->A_link() = nextContacts[i]->link1;
+        constraint->A_localpos() = nextContacts[i]->localPose1;
+        if (attach) constraint->A_localpos().translation() = nextContacts[i]->localPose1.linear() * cnoid::Vector3(0,0,-0.02); // 0.02だけ離す
+        constraint->B_link() = nextContacts[i]->link2;
+        constraint->B_localpos() = nextContacts[i]->localPose2;
+        constraint->eval_link() = nullptr;
+        constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
+        constraints1.push_back(constraint);
+        if (slide) {
+          for (int j=0; j<stopContacts.size(); j++) {
+            if (nextContacts[i]->name == stopContacts[j]->name) {
+              cnoid::Vector3 diff = (stopContacts[j]->link1->T() * stopContacts[j]->localPose1).rotation().transpose() * (nextContacts[i]->localPose2.translation() - stopContacts[j]->localPose2.translation());
+              cnoid::Matrix3 diffR = ((stopContacts[j]->link1->T() * stopContacts[j]->localPose1).rotation().transpose() * (nextContacts[i]->link1->T() * nextContacts[i]->localPose1).rotation());
+              Eigen::SparseMatrix<double,Eigen::RowMajor> A(3,6);
+              A.insert(0,0) = diff[0] > 0 ? -1.0 : 1.0; A.insert(0,2) = 0.2;
+              A.insert(1,1) = diff[1] > 0 ? -1.0 : 1.0; A.insert(1,2) = 0.2;
+              A.insert(2,5) = cnoid::rpyFromRot(diffR)[2] > 0 ? -1.0 : 1.0; A.insert(2,2) = 0.005;
+              As.push_back(A);
+              cnoid::VectorX b = Eigen::VectorXd::Zero(3);
+              bs.push_back(b);
+              Eigen::SparseMatrix<double,Eigen::RowMajor> C(5,6); // TODO 干渉形状から出す？
+              C.insert(0,2) = 1.0;
+              C.insert(1,2) = 0.05; C.insert(1,3) = 1.0;
+              C.insert(2,2) = 0.05; C.insert(2,3) = -1.0;
+              C.insert(3,2) = 0.05; C.insert(3,4) = 1.0;
+              C.insert(4,2) = 0.05; C.insert(4,4) = -1.0;
+              Cs.push_back(C);
+              cnoid::VectorX dl = Eigen::VectorXd::Zero(11);
+              dls.push_back(dl);
+              cnoid::VectorX du = 1e10 * Eigen::VectorXd::Ones(11);
+              du[0] = 2000.0;
+              dus.push_back(du);
+            }
+          }
+        }
+      }
     }
+    scfrConstraint->poses() = poses;
+    scfrConstraint->As() = As;
+    scfrConstraint->bs() = bs;
+    scfrConstraint->Cs() = Cs;
+    scfrConstraint->dls() = dls;
+    scfrConstraint->dus() = dus;
+    constraints1.push_back(scfrConstraint);
+
+    std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0,constraints1};
+    prioritized_inverse_kinematics_solver2::IKParam pikParam;
+    std::vector<std::shared_ptr<prioritized_qp_base::Task> > prevTasks;
+    return prioritized_inverse_kinematics_solver2::solveIKLoop(param->variables,
+                                                                      constraints,
+                                                                      prevTasks,
+                                                                      pikParam
+                                                                      );
   }
 }
