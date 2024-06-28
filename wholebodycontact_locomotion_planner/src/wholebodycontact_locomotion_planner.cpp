@@ -209,7 +209,7 @@ namespace wholebodycontact_locomotion_planner{
       // 離れているものをできる限り近づける(guide path無視)と、スタックする恐れがある
       std::vector<int> subgoalIdQueue = std::vector<int>{nextId};
       std::vector<std::shared_ptr<Contact> > moveCandidate = currentContact;
-      std::vector<std::shared_ptr<Contact> > moveCandidateQueue;
+      std::vector<std::vector<std::shared_ptr<Contact> > > moveCandidateQueue; // 複数接触が同じidまで進む場合、複数Contactを同時にCandidateに追加するため.
       {
         // moveCandidateのうち、guidePath[subgoalIdQueue.back()]と比較して最も離れているcontactを一つ選ぶ
         int moveContactId; // in moveCandidate
@@ -234,7 +234,7 @@ namespace wholebodycontact_locomotion_planner{
         std::vector<double> pathInitialFrame;
         global_inverse_kinematics_solver::link2Frame(param->variables, pathInitialFrame);
         int idx;
-        for (int idx=pathId; idx<subgoalIdQueue.back(); idx++) {
+        for (int idx=pathId; idx<=subgoalIdQueue.back(); idx++) {
           if (!solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, false, false)) break;
           std::vector<double> frame;
           global_inverse_kinematics_solver::link2Frame(param->variables, frame);
@@ -244,14 +244,11 @@ namespace wholebodycontact_locomotion_planner{
           std::vector<double> frame;
           global_inverse_kinematics_solver::link2Frame(param->variables, frame);
           path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (frame, currentContact)); // TODO currentContactからmoveContactを除くこと
-          if (idx < subgoalIdQueue.back()) { // 目標の接触状態に達しなかった
-            // 動かしていない他の接触を動かして、この接触状態を目指す.
-            subgoalIdQueue.push_back(idx);
-          }
         } else { // detach-attachでは1stepも進めない場合
+          path.clear();
           global_inverse_kinematics_solver::frame2Link(pathInitialFrame, param->variables);
           // 選ばれたcontactだけ、slideでIKが解けなくなるまでguidePathを進める
-          for (idx=pathId; idx<subgoalIdQueue.back(); idx++) {
+          for (idx=pathId; idx<=subgoalIdQueue.back(); idx++) {
             if (!solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, false, true)) break;
             std::vector<double> frame;
             global_inverse_kinematics_solver::link2Frame(param->variables, frame);
@@ -265,27 +262,32 @@ namespace wholebodycontact_locomotion_planner{
 
         // currentContactを更新
         for (int i=0; i<currentContact.size(); i++) {
-          if (currentContact[i]->name == moveCandidate[moveContactId]->name) {
-            currentContact[i] = moveCandidate[moveContactId];
+          if (currentContact[i]->name == guidePath[idx].second[moveContactPathId]->name) {
+            currentContact[i] = guidePath[idx].second[moveContactPathId];
           }
         }
 
-        if (moveCandidate.size() == 1) { // 動かす最後の接触
-          if (idx == subgoalIdQueue.back()) {
+        // subgoalIdQueueとmoveCandidateの更新
+        if (idx == subgoalIdQueue.back()) { // 目標の接触状態に達した
+          if(moveCandidate.size() > 1) { // まだsubgoalIdQueueに達していない接触がある
+            moveCandidateQueue.back().push_back(moveCandidate[moveContactId]);
+            moveCandidate.erase(moveCandidate.begin() + moveContactId);
+          } else { // 全ての接触がsubgoalIdQueueに達している
             subgoalIdQueue.pop_back();
-            moveCandidate.push_back(moveCandidateQueue.back());
+            moveCandidate.insert(moveCandidate.end(), moveCandidateQueue.back().begin(), moveCandidateQueue.back().end());
             pathId = idx;
-          } else { // 目標の接触状態に達しなかった
+          }
+        } else { // 目標の接触状態に達しなかった
+          if (moveCandidate.size() > 1) {// 動かしていない他の接触を動かして、この接触状態を目指す.
+            subgoalIdQueue.push_back(idx);
+            moveCandidateQueue.push_back(std::vector<std::shared_ptr<Contact> >{moveCandidate[moveContactId]});
+            moveCandidate.erase(moveCandidate.begin() + moveContactId);
+          } else { // 全ての接触を動かしたのに、pathを一つも進めなかった
             std::cerr << "no movable contact exist" << std::endl;
           }
-        } else {
-          // 動かしていない他の接触を動かして、この接触状態を目指す.
-          subgoalIdQueue.push_back(idx);
-          moveCandidateQueue.push_back(moveCandidate[moveContactId]);
-          moveCandidate.erase(moveCandidate.begin() + moveContactId);
         }
 
-      outputPath.insert(outputPath.end(), path.begin(), path.end());
+        outputPath.insert(outputPath.end(), path.begin(), path.end());
       }
       // TODO 接触の増加・減少処理
     }
