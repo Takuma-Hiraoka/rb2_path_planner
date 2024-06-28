@@ -193,6 +193,7 @@ namespace wholebodycontact_locomotion_planner{
     while(pathId < guidePath.size()) {
       std::vector<std::shared_ptr<Contact> > currentContact = (pathId == 0) ? param->currentContactPoints : guidePath[pathId].second;
       // 接触が切り替わる直前のIDを探す
+      // TODO 接触リンクが同じでも、離れすぎ/接触面が変わる等では切り替わりと扱う
       int nextId;
       bool change = false;
       for (nextId=pathId+1;nextId<guidePath.size() && !change;nextId++) {
@@ -290,6 +291,7 @@ namespace wholebodycontact_locomotion_planner{
         outputPath.insert(outputPath.end(), path.begin(), path.end());
       }
       // TODO 接触の増加・減少処理
+      
     }
     return true;
   }
@@ -301,6 +303,16 @@ namespace wholebodycontact_locomotion_planner{
                       bool slide) {
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints0;
     for (int i=0; i<param->constraints.size(); i++) {
+      if (typeid(param->constraints[i])==typeid(std::shared_ptr<ik_constraint2::CollisionConstraint>)) {
+        bool skip=false;
+        for (int j=0; j<stopContacts.size() && !skip;j++) {
+          if (stopContacts[j]->name == std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->A_link()->name()) skip = true;
+        }
+        for (int j=0; j<nextContacts.size() && !skip;j++) {
+          if (nextContacts[j]->name == std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->A_link()->name()) skip = true;
+        }
+        if (skip) break;
+      }
       constraints0.push_back(param->constraints[i]);
     }
     std::shared_ptr<ik_constraint2_scfr::ScfrConstraint> scfrConstraint = std::make_shared<ik_constraint2_scfr::ScfrConstraint>();
