@@ -57,6 +57,7 @@ namespace wholebodycontact_locomotion_planner{
   bool solveContactIK(const std::shared_ptr<WBLPParam>& param,
                       const std::vector<std::shared_ptr<Contact> >& stopContact,
                       const std::vector<std::shared_ptr<Contact> >& nextContacts,
+                      const std::vector<std::shared_ptr<ik_constraint2::IKConstraint> >& nominals,
                       bool attach,
                       bool slide);
 }

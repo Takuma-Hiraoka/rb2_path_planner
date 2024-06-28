@@ -1,6 +1,22 @@
 #include <wholebodycontact_locomotion_planner/wholebodycontact_locomotion_planner.h>
 
 namespace wholebodycontact_locomotion_planner{
+  std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > frame2Nominals(const std::vector<double>& frame, const std::vector<cnoid::LinkPtr>& links) {
+    unsigned int i=0;
+    std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
+    for(int l=0;l<links.size();l++){
+      if(links[l]->isRevoluteJoint() || links[l]->isPrismaticJoint()) {
+        std::shared_ptr<ik_constraint2::JointAngleConstraint> constraint = std::make_shared<ik_constraint2::JointAngleConstraint>();
+        constraint->joint() = links[l];
+        constraint->targetq() = frame[i];
+        constraint->precision() = 1e10; // always satisfied
+        i+=1;
+      }else if(links[l]->isFreeJoint()) {
+        i+=7;
+      }
+    }
+
+  }
   bool solveCBPath(const std::shared_ptr<Environment>& environment,
                    const cnoid::Isometry3 goal, // rootLink
                    const std::shared_ptr<WBLPParam>& param,
@@ -205,10 +221,9 @@ namespace wholebodycontact_locomotion_planner{
           }
         }
       }
-
-      // nextIdになるまで、離れているものから順に近づけていく
+      // nextId-1になるまで、離れているものから順に近づけていく
       // 離れているものをできる限り近づける(guide path無視)と、スタックする恐れがある
-      std::vector<int> subgoalIdQueue = std::vector<int>{nextId};
+      std::vector<int> subgoalIdQueue = std::vector<int>{nextId-1};
       std::vector<std::shared_ptr<Contact> > moveCandidate = currentContact;
       std::vector<std::vector<std::shared_ptr<Contact> > > moveCandidateQueue; // 複数接触が同じidまで進む場合、複数Contactを同時にCandidateに追加するため.
       {
@@ -236,12 +251,12 @@ namespace wholebodycontact_locomotion_planner{
         global_inverse_kinematics_solver::link2Frame(param->variables, pathInitialFrame);
         int idx;
         for (int idx=pathId; idx<=subgoalIdQueue.back(); idx++) {
-          if (!solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, false, false)) break;
+          if (!solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, frame2Nominals(guidePath[idx].first, param->variables), false, false)) break;
           std::vector<double> frame;
           global_inverse_kinematics_solver::link2Frame(param->variables, frame);
           path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > >(frame, currentContact)); // TODO currentContactからmoveContactを除くこと
         }
-        if(idx != pathId && solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, true, false)) { // detach-attachで一つでも進むことができる場合
+        if(idx != pathId && solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, frame2Nominals(guidePath[idx].first, param->variables), true, false)) { // detach-attachで一つでも進むことができる場合
           std::vector<double> frame;
           global_inverse_kinematics_solver::link2Frame(param->variables, frame);
           path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (frame, currentContact)); // TODO currentContactからmoveContactを除くこと
@@ -250,7 +265,7 @@ namespace wholebodycontact_locomotion_planner{
           global_inverse_kinematics_solver::frame2Link(pathInitialFrame, param->variables);
           // 選ばれたcontactだけ、slideでIKが解けなくなるまでguidePathを進める
           for (idx=pathId; idx<=subgoalIdQueue.back(); idx++) {
-            if (!solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, false, true)) break;
+            if (!solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, frame2Nominals(guidePath[idx].first, param->variables), false, true)) break;
             std::vector<double> frame;
             global_inverse_kinematics_solver::link2Frame(param->variables, frame);
             outputPath.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (frame, currentContact));
@@ -291,7 +306,27 @@ namespace wholebodycontact_locomotion_planner{
         outputPath.insert(outputPath.end(), path.begin(), path.end());
       }
       // TODO 接触の増加・減少処理
-      
+      if (pathId==guidePath.size()-1) { // 計画完了
+        break;
+      } else {
+        std::vector<std::shared_ptr<Contact> > attachContact;
+        for (int i=0;i<guidePath[nextId].second.size();i++) {
+          bool attach = true;
+          for (int j=0;j<currentContact.size() && attach;j++) {
+            if (guidePath[nextId].second[i]->name == currentContact[j]->name) attach = false;
+          }
+          if(attach) attachContact.push_back(guidePath[nextId].second[i]);
+        }
+        std::vector<std::shared_ptr<Contact> > detachContact;
+        for (int i=0;i<currentContact.size();i++) {
+          bool detach = true;
+          for (int j=0;j<guidePath[nextId].second.size() && detach;j++) {
+            if (guidePath[nextId].second[j]->name == currentContact[i]->name) detach = false;
+          }
+          if(detach) detachContact.push_back(currentContact[i]);
+        }
+        
+      }
     }
     return true;
   }
@@ -299,6 +334,7 @@ namespace wholebodycontact_locomotion_planner{
   bool solveContactIK(const std::shared_ptr<WBLPParam>& param,
                       const std::vector<std::shared_ptr<Contact> >& stopContacts,
                       const std::vector<std::shared_ptr<Contact> >& nextContacts,
+                      const std::vector<std::shared_ptr<ik_constraint2::IKConstraint> >& nominals,
                       bool attach,
                       bool slide) {
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints0;
@@ -393,7 +429,7 @@ namespace wholebodycontact_locomotion_planner{
     scfrConstraint->dus() = dus;
     constraints1.push_back(scfrConstraint);
 
-    std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0,constraints1};
+    std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0,constraints1, nominals};
     prioritized_inverse_kinematics_solver2::IKParam pikParam;
     std::vector<std::shared_ptr<prioritized_qp_base::Task> > prevTasks;
     return prioritized_inverse_kinematics_solver2::solveIKLoop(param->variables,
