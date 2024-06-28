@@ -53,6 +53,23 @@ namespace wholebodycontact_locomotion_planner_sample{
                            std::shared_ptr<wholebodycontact_locomotion_planner::WBLPParam>& param,
                            cnoid::BodyPtr& abstractRobot // for visual
                            ) {
+    std::vector<std::string> contactableLinks{
+        "LLEG_ANKLE_R",
+        "RLEG_ANKLE_R",
+        "LLEG_HIP_Y",
+        "RLEG_HIP_Y",
+        "LLEG_KNEE",
+        "RLEG_KNEE",
+        "LARM_WRIST_R",
+        "RARM_WRIST_R",
+        "LARM_SHOULDER_R",
+        "RARM_SHOULDER_R",
+        "LARM_ELBOW",
+        "RARM_ELBOW",
+        "WAIST",
+        "WAIST_R",
+        "CHEST"};
+
     cnoid::BodyLoader bodyLoader;
     param->robot = bodyLoader.load(ros::package::getPath("choreonoid") + "/share/model/SR1/SR1.body");
 
@@ -98,21 +115,7 @@ namespace wholebodycontact_locomotion_planner_sample{
       cnoid::Affine3 transform = cnoid::Affine3::Identity();
       transform.linear() *= 1.2;
       for (int i=0; i<abstractRobot->numLinks(); i++) {
-        if(param->robot->link(i)->name() == "LLEG_ANKLE_P" ||
-           param->robot->link(i)->name() == "RLEG_ANKLE_P" ||
-           param->robot->link(i)->name() == "LLEG_HIP_P" ||
-           param->robot->link(i)->name() == "RLEG_HIP_P" ||
-           param->robot->link(i)->name() == "LLEG_HIP_R" ||
-           param->robot->link(i)->name() == "RLEG_HIP_R" ||
-           param->robot->link(i)->name() == "LARM_WRIST_P" ||
-           param->robot->link(i)->name() == "RARM_WRIST_P" ||
-           param->robot->link(i)->name() == "LARM_WRIST_Y" ||
-           param->robot->link(i)->name() == "RARM_WRIST_Y" ||
-           param->robot->link(i)->name() == "LARM_SHOULDER_Y" ||
-           param->robot->link(i)->name() == "RARM_SHOULDER_Y" ||
-           param->robot->link(i)->name() == "LARM_SHOULDER_P" ||
-           param->robot->link(i)->name() == "RARM_SHOULDER_P" ||
-           param->robot->link(i)->name() == "WAIST_P") continue;
+        if(std::find(contactableLinks.begin(),contactableLinks.end(),param->robot->link(i)->name()) == contactableLinks.end()) continue;
         // 拡大凸包meshを作る
         cnoid::SgNodePtr collisionshape = param->robot->link(i)->collisionShape();
         Eigen::Matrix<double,3,Eigen::Dynamic> vertices;
@@ -149,7 +152,6 @@ namespace wholebodycontact_locomotion_planner_sample{
         }else{
           std::cerr << __PRETTY_FUNCTION__ << " convex hull " << abstractRobot->link(i)->name() << " fail" << std::endl;
         }
-
       }
     } // abstractRobot
 
@@ -213,21 +215,7 @@ namespace wholebodycontact_locomotion_planner_sample{
     param->constraints.clear();
     // environmental collision
     for (int i=0; i<param->robot->numLinks(); i++) {
-      if(param->robot->link(i)->name() == "LLEG_ANKLE_P" ||
-         param->robot->link(i)->name() == "RLEG_ANKLE_P" ||
-         param->robot->link(i)->name() == "LLEG_HIP_P" ||
-         param->robot->link(i)->name() == "RLEG_HIP_P" ||
-         param->robot->link(i)->name() == "LLEG_HIP_R" ||
-         param->robot->link(i)->name() == "RLEG_HIP_R" ||
-         param->robot->link(i)->name() == "LARM_WRIST_P" ||
-         param->robot->link(i)->name() == "RARM_WRIST_P" ||
-         param->robot->link(i)->name() == "LARM_WRIST_Y" ||
-         param->robot->link(i)->name() == "RARM_WRIST_Y" ||
-         param->robot->link(i)->name() == "LARM_SHOULDER_Y" ||
-         param->robot->link(i)->name() == "RARM_SHOULDER_Y" ||
-         param->robot->link(i)->name() == "LARM_SHOULDER_P" ||
-         param->robot->link(i)->name() == "RARM_SHOULDER_P" ||
-         param->robot->link(i)->name() == "WAIST_P") continue;
+      if(std::find(contactableLinks.begin(),contactableLinks.end(),param->robot->link(i)->name()) == contactableLinks.end()) continue;
       std::shared_ptr<ik_constraint2_distance_field::DistanceFieldCollisionConstraint> constraint = std::make_shared<ik_constraint2_distance_field::DistanceFieldCollisionConstraint>();
       constraint->A_link() = param->robot->link(i);
       constraint->field() = field;
@@ -273,21 +261,7 @@ namespace wholebodycontact_locomotion_planner_sample{
       {
         // reachability
         for (int i=0; i<param->robot->numLinks(); i++) {
-          if(param->robot->link(i)->name() == "LLEG_ANKLE_P" ||
-             param->robot->link(i)->name() == "RLEG_ANKLE_P" ||
-             param->robot->link(i)->name() == "LLEG_HIP_P" ||
-             param->robot->link(i)->name() == "RLEG_HIP_P" ||
-             param->robot->link(i)->name() == "LLEG_HIP_R" ||
-             param->robot->link(i)->name() == "RLEG_HIP_R" ||
-             param->robot->link(i)->name() == "LARM_WRIST_P" ||
-             param->robot->link(i)->name() == "RARM_WRIST_P" ||
-             param->robot->link(i)->name() == "LARM_WRIST_Y" ||
-             param->robot->link(i)->name() == "RARM_WRIST_Y" ||
-             param->robot->link(i)->name() == "LARM_SHOULDER_Y" ||
-             param->robot->link(i)->name() == "RARM_SHOULDER_Y" ||
-             param->robot->link(i)->name() == "LARM_SHOULDER_P" ||
-             param->robot->link(i)->name() == "RARM_SHOULDER_P" ||
-             param->robot->link(i)->name() == "WAIST_P") continue;
+          if(std::find(contactableLinks.begin(),contactableLinks.end(),param->robot->link(i)->name()) == contactableLinks.end()) continue;
           std::shared_ptr<ik_constraint2_bullet::BulletKeepCollisionConstraint> constraint = std::make_shared<ik_constraint2_bullet::BulletKeepCollisionConstraint>();
           constraint->A_link() = param->robot->link(i);
           constraint->A_link_bulletModel() = constraint->A_link();
