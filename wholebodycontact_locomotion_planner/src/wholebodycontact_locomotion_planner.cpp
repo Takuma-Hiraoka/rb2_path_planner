@@ -167,7 +167,7 @@ namespace wholebodycontact_locomotion_planner{
             std::shared_ptr<Contact> contact = std::make_shared<Contact>();
             contact->name = it->second->reachabilityConstraints[j]->A_link()->name();
             contact->link1 = it->second->reachabilityConstraints[j]->A_link();
-            contact->localPose1 = cnoid::Isometry3::Identity(); // WBLP時に決定する
+            contact->localPose1 = cnoid::Isometry3::Identity(); // 前後のstateの接触位置は基本的に同じであるためWBLP時に決定する
             contact->link2 = nullptr;
             contact->localPose2.translation() = it->second->reachabilityConstraints[j]->currentp(); // TODO 環境から姿勢を出す.
             Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6); // TODO 干渉形状から出す？
@@ -221,12 +221,13 @@ namespace wholebodycontact_locomotion_planner{
           }
         }
       }
+
       // nextId-1になるまで、離れているものから順に近づけていく
       // 離れているものをできる限り近づける(guide path無視)と、スタックする恐れがある
       std::vector<int> subgoalIdQueue = std::vector<int>{nextId-1};
       std::vector<std::shared_ptr<Contact> > moveCandidate = currentContact;
       std::vector<std::vector<std::shared_ptr<Contact> > > moveCandidateQueue; // 複数接触が同じidまで進む場合、複数Contactを同時にCandidateに追加するため.
-      {
+      for (int iter = 0; iter<1000;iter++) {
         // moveCandidateのうち、guidePath[subgoalIdQueue.back()]と比較して最も離れているcontactを一つ選ぶ
         int moveContactId; // in moveCandidate
         int moveContactPathId; // in guidePath
@@ -309,14 +310,6 @@ namespace wholebodycontact_locomotion_planner{
       if (pathId==guidePath.size()-1) { // 計画完了
         break;
       } else {
-        std::vector<std::shared_ptr<Contact> > attachContact;
-        for (int i=0;i<guidePath[nextId].second.size();i++) {
-          bool attach = true;
-          for (int j=0;j<currentContact.size() && attach;j++) {
-            if (guidePath[nextId].second[i]->name == currentContact[j]->name) attach = false;
-          }
-          if(attach) attachContact.push_back(guidePath[nextId].second[i]);
-        }
         std::vector<std::shared_ptr<Contact> > detachContact;
         for (int i=0;i<currentContact.size();i++) {
           bool detach = true;
@@ -325,7 +318,67 @@ namespace wholebodycontact_locomotion_planner{
           }
           if(detach) detachContact.push_back(currentContact[i]);
         }
-        
+        std::vector<std::shared_ptr<Contact> > attachContact;
+        for (int i=0;i<guidePath[nextId].second.size();i++) {
+          bool attach = true;
+          for (int j=0;j<currentContact.size() && attach;j++) {
+            if (guidePath[nextId].second[i]->name == currentContact[j]->name) attach = false;
+          }
+          if(attach) attachContact.push_back(guidePath[nextId].second[i]);
+        }
+        // まず接触を離す
+        {
+          if(!solveContactIK(param, currentContact, detachContact, frame2Nominals(guidePath[nextId].first, param->variables), false, false)) {
+            std::cerr << "cannot detach contact" << std::endl;
+            break;
+          }
+          std::vector<double> frame;
+          global_inverse_kinematics_solver::link2Frame(param->variables, frame);
+          outputPath.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (frame, currentContact)); // TODO currentContactからdetachContactを除くこと
+        }
+        // TODO この間のgikによる補間
+        // 追加する接触のリンク座標を決める.
+        {
+          std::vector<double> preContactPose;
+          global_inverse_kinematics_solver::link2Frame(param->variables, preContactPose);
+
+          global_inverse_kinematics_solver::frame2Link(guidePath[nextId].first,param->variables);
+          param->robot->calcForwardKinematics(false);
+          param->robot->calcCenterOfMass();
+          for (int i=0;i<attachContact.size();i++) {
+            double maxValue = 0;
+            for(int j=0;j<param->contactPoints[attachContact[i]->name].size();j++){
+              // TODO 環境モデルを使う
+              double weight = 1.0;
+              double value=weight*cnoid::Vector3::UnitZ().dot(attachContact[i]->link1->R() * param->contactPoints[attachContact[i]->name][j].rotation * cnoid::Vector3::UnitZ());
+              value +=(attachContact[i]->link1->p() + attachContact[i]->link1->R() * param->contactPoints[attachContact[i]->name][j].translation - attachContact[i]->localPose2.translation()).norm();
+              if (value > maxValue) {
+                maxValue = value;
+                attachContact[i]->localPose1.linear() = param->contactPoints[attachContact[i]->name][j].rotation;
+                attachContact[i]->localPose1.translation() = param->contactPoints[attachContact[i]->name][j].translation;
+              }
+            }
+          }
+
+          // 接触を追加する
+          global_inverse_kinematics_solver::frame2Link(preContactPose, param->variables);
+          param->robot->calcForwardKinematics(false);
+          param->robot->calcCenterOfMass();
+          if(!solveContactIK(param, currentContact, attachContact, frame2Nominals(guidePath[nextId].first, param->variables), false, false)) {
+            std::cerr << "cannot pre attach contact" << std::endl;
+            break;
+          }
+          std::vector<double> frame;
+          global_inverse_kinematics_solver::link2Frame(param->variables, frame);
+          outputPath.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (frame, currentContact)); // TODO currentContactからattachContactを除くこと
+          if(!solveContactIK(param, currentContact, attachContact, frame2Nominals(guidePath[nextId].first, param->variables), true, false)) {
+            std::cerr << "cannot attach contact" << std::endl;
+            break;
+          }
+          global_inverse_kinematics_solver::link2Frame(param->variables, frame);
+          outputPath.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (frame, currentContact)); // TODO currentContactからattachContactを除くこと
+          pathId++;
+        }
       }
     }
     return true;
