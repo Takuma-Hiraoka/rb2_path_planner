@@ -11,6 +11,8 @@ namespace wholebodycontact_locomotion_planner{
   class WBLPParam {
   public:
     int debugLevel = 0;
+    int maxSubGoalIdx = 5; // 接触が切り替わるか、maxSubGoalIdxぶん進んだ接触状態に完全に一致するように接触を定めていく. この数までは接触1つを進めるだけ進めてしまうので、大きすぎると(5,5)ならできたのに(10,5)ができずに計画失敗となってしまう.
+    int maxContactIter = 1000; // 接触一つを動かしていく上限回数
     std::shared_ptr<choreonoid_viewer::Viewer> viewer = nullptr;
     cnoid::BodyPtr robot;
     std::vector<cnoid::LinkPtr> variables;
@@ -60,6 +62,9 @@ namespace wholebodycontact_locomotion_planner{
                       const std::vector<std::shared_ptr<ik_constraint2::IKConstraint> >& nominals,
                       bool attach,
                       bool slide);
+  bool calcContactPoint(const std::shared_ptr<WBLPParam>& param,
+                        const std::vector<std::shared_ptr<Contact> >& attachContacts
+                        );
 }
 
 #endif

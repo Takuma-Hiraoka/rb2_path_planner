@@ -15,6 +15,8 @@ namespace wholebodycontact_locomotion_planner_sample{
     std::shared_ptr<wholebodycontact_locomotion_planner::WBLPParam> param = std::make_shared<wholebodycontact_locomotion_planner::WBLPParam>();
     cnoid::BodyPtr abstractRobot;
     generateSampleRobot(environment->obstacles, param, abstractRobot);
+    std::vector<double> initialPose;
+    global_inverse_kinematics_solver::link2Frame(param->variables, initialPose);
 
     // setup viewer
     std::shared_ptr<choreonoid_viewer::Viewer> viewer = std::make_shared<choreonoid_viewer::Viewer>();
@@ -25,6 +27,8 @@ namespace wholebodycontact_locomotion_planner_sample{
 
     viewer->drawObjects();
 
+    param->debugLevel=0;
+    param->viewer = viewer;
     param->gikRootParam.range = 0.5;
     param->gikRootParam.viewer = viewer;
     param->gikRootParam.drawLoop = 1;
@@ -35,8 +39,8 @@ namespace wholebodycontact_locomotion_planner_sample{
     //    param->gikRootParam.pikParam.debugLevel = 1;
 
     cnoid::Isometry3 goal = param->robot->rootLink()->T();
-    goal.translation()[0] += 1.5;
-    goal.translation()[2] += 0.35;
+    goal.translation()[0] += 0.1;
+    //    goal.translation()[2] += 0.35;
 
     std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<wholebodycontact_locomotion_planner::Contact> > > > path;
 
@@ -44,6 +48,15 @@ namespace wholebodycontact_locomotion_planner_sample{
                                                      goal,
                                                      param,
                                                      path);
+    std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<wholebodycontact_locomotion_planner::Contact> > > > contactPath;
+    global_inverse_kinematics_solver::frame2Link(initialPose,param->variables);
+    param->robot->calcForwardKinematics(false);
+    param->robot->calcCenterOfMass();
+    bool solved = wholebodycontact_locomotion_planner::solveWBLP(environment,
+                                                                 param,
+                                                                 path,
+                                                                 contactPath);
+    if (!solved) return;
     // variables
     std::vector<cnoid::LinkPtr> abstractVariables;
     abstractVariables.push_back(abstractRobot->rootLink());
@@ -51,7 +64,7 @@ namespace wholebodycontact_locomotion_planner_sample{
       abstractVariables.push_back(abstractRobot->joint(i));
     }
 
-    while(true) {
+    while (true) {
       // main loop
       for(int i=0;i<path.size();i++){
         global_inverse_kinematics_solver::frame2Link(path.at(i).first,param->variables);
@@ -61,10 +74,23 @@ namespace wholebodycontact_locomotion_planner_sample{
         abstractRobot->calcForwardKinematics(false);
         abstractRobot->calcCenterOfMass();
         viewer->drawObjects();
-        std::cerr << "contacts :";
-        for (int j=0; j<path.at(i).second.size(); j++) std::cerr << " " << path.at(i).second[j]->name;
-        std::cerr << std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        // std::cerr << "contacts :";
+        // for (int j=0; j<path.at(i).second.size(); j++) std::cerr << " " << path.at(i).second[j]->name;
+        // std::cerr << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+      }
+      global_inverse_kinematics_solver::frame2Link(initialPose,param->variables);
+      param->robot->calcForwardKinematics(false);
+      param->robot->calcCenterOfMass();
+      for(int i=0;i<contactPath.size();i++){
+        global_inverse_kinematics_solver::frame2Link(contactPath.at(i).first,param->variables);
+        param->robot->calcForwardKinematics(false);
+        param->robot->calcCenterOfMass();
+        global_inverse_kinematics_solver::frame2Link(contactPath.at(i).first,abstractVariables);
+        abstractRobot->calcForwardKinematics(false);
+        abstractRobot->calcCenterOfMass();
+        viewer->drawObjects();
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
       }
     }
   }

@@ -116,7 +116,7 @@ namespace wholebodycontact_locomotion_planner_sample{
       cnoid::Affine3 transform = cnoid::Affine3::Identity();
       transform.linear() *= 1.2;
       for (int i=0; i<abstractRobot->numLinks(); i++) {
-        double expansionLength = 0.1;
+        double expansionLength = 0.06;
         if(std::find(contactableLinks.begin(),contactableLinks.end(),param->robot->link(i)->name()) == contactableLinks.end()) expansionLength = 0.0;;
         // 拡大凸包meshを作る
         cnoid::SgNodePtr collisionshape = param->robot->link(i)->collisionShape();
