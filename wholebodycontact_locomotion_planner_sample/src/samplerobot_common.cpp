@@ -116,7 +116,8 @@ namespace wholebodycontact_locomotion_planner_sample{
       cnoid::Affine3 transform = cnoid::Affine3::Identity();
       transform.linear() *= 1.2;
       for (int i=0; i<abstractRobot->numLinks(); i++) {
-        if(std::find(contactableLinks.begin(),contactableLinks.end(),param->robot->link(i)->name()) == contactableLinks.end()) continue;
+        double expansionLength = 0.1;
+        if(std::find(contactableLinks.begin(),contactableLinks.end(),param->robot->link(i)->name()) == contactableLinks.end()) expansionLength = 0.0;;
         // 拡大凸包meshを作る
         cnoid::SgNodePtr collisionshape = param->robot->link(i)->collisionShape();
         Eigen::Matrix<double,3,Eigen::Dynamic> vertices;
@@ -125,7 +126,7 @@ namespace wholebodycontact_locomotion_planner_sample{
           // 拡大
           {
             for (int v=0; v<model->vertices()->size(); v++) {
-              model->vertices()->at(v) += model->vertices()->at(v).cast<cnoid::Vector3f::Scalar>() / (model->vertices()->at(v).cast<cnoid::Vector3f::Scalar>()).norm() * 0.1;
+              model->vertices()->at(v) += model->vertices()->at(v).cast<cnoid::Vector3f::Scalar>() / (model->vertices()->at(v).cast<cnoid::Vector3f::Scalar>()).norm() * expansionLength;
             }
           }
           // 凸包
@@ -189,8 +190,8 @@ namespace wholebodycontact_locomotion_planner_sample{
         std::shared_ptr<wholebodycontact_locomotion_planner::Contact> rleg = std::make_shared<wholebodycontact_locomotion_planner::Contact>();
         rleg->name = "RLEG_ANKLE_R";
         rleg->link1 = param->robot->link("RLEG_ANKLE_R");
-        rleg->localPose1.translation() = cnoid::Vector3(0.0,0.0,0.045);
-        rleg->localPose2.translation() = cnoid::Vector3(0.0,-0.09,0.045);
+        rleg->localPose1.translation() = cnoid::Vector3(0.0,0.0,-0.045);
+        rleg->localPose2.translation() = cnoid::Vector3(0.0,-0.09,0.0);
         Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6);
         C.insert(0,2) = 1.0;
         C.insert(1,0) = 1.0; C.insert(1,2) = 0.2;
