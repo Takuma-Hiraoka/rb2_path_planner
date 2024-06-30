@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   ik_constraint2_bullet
   ik_constraint2_scfr
   choreonoid_cddlib
+  choreonoid_qhull
   global_inverse_kinematics_solver
   prioritized_inverse_kinematics_solver2
   trajectory_optimizer

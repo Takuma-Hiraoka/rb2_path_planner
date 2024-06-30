@@ -7,7 +7,6 @@ set(CMAKE_BUILD_TYPE Release)
 find_package(catkin REQUIRED COMPONENTS
   wholebodycontact_locomotion_planner
   choreonoid_viewer
-  choreonoid_qhull
   choreonoid_bullet
   choreonoid_cddlib
   ik_constraint2_vclip
@@ -32,6 +31,7 @@ add_library(CnoidWholeBodyContactLocomotionPlannerSamplePlugin SHARED
   src/sample0_display.cpp
   src/sample1_walk.cpp
   src/sample2_tunnel.cpp
+  src/sample3_jaxon.cpp
   )
 target_link_libraries(CnoidWholeBodyContactLocomotionPlannerSamplePlugin
   ${catkin_LIBRARIES}
