@@ -551,7 +551,7 @@ namespace wholebodycontact_locomotion_planner{
         constraint->B_localpos() = nextContacts[i]->localPose2;
         if (!attach) constraint->B_localpos().translation() += cnoid::Vector3(0,0,0.05); // 0.05だけ離す // TODO 外部環境から出す
         constraint->eval_link() = nullptr;
-        constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 0.0; // TODO 環境モデルから出す
+        constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 0.01; // TODO 環境モデルから出す
         constraints1.push_back(constraint);
         if (slide) {
           for (int j=0; j<stopContacts.size(); j++) {
@@ -624,12 +624,12 @@ namespace wholebodycontact_locomotion_planner{
                         const std::vector<std::shared_ptr<Contact> >& attachContacts
                         ) {
     for (int i=0;i<attachContacts.size();i++) {
-      double maxValue = 0;
+      double maxValue = -1000;
       for(int j=0;j<param->contactPoints[attachContacts[i]->name].size();j++){
         // TODO 環境モデルを使う
-        double weight = 5.0;
+        double weight = 0.1;
         double value=weight*cnoid::Vector3::UnitZ().dot(attachContacts[i]->link1->R() * param->contactPoints[attachContacts[i]->name][j].rotation * cnoid::Vector3::UnitZ());
-        value +=(attachContacts[i]->link1->p() + attachContacts[i]->link1->R() * param->contactPoints[attachContacts[i]->name][j].translation - attachContacts[i]->localPose2.translation()).norm();
+        value -=(attachContacts[i]->link1->p() + attachContacts[i]->link1->R() * param->contactPoints[attachContacts[i]->name][j].translation - attachContacts[i]->localPose2.translation()).norm();
         if (value > maxValue) {
           maxValue = value;
           attachContacts[i]->localPose1.linear() = param->contactPoints[attachContacts[i]->name][j].rotation;
