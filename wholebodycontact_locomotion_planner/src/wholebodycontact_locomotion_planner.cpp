@@ -295,7 +295,7 @@ namespace wholebodycontact_locomotion_planner{
           }
         }
         idx--;
-        if(idx > pathId) { // detach-attachで一つでも進むことができる場合
+        if(idx >= pathId) { // detach-attachで一つでも進むことができる場合
 
           global_inverse_kinematics_solver::frame2Link(lastLandingFrame, param->variables);
           param->robot->calcForwardKinematics(false);
@@ -337,7 +337,7 @@ namespace wholebodycontact_locomotion_planner{
           }
           idx--;
           // TODO
-          if(idx > pathId) {
+          if(idx >= pathId) {
           } else { // detach-attachでもslideでも動けない
             std::cerr << "cannot move contact" << std::endl;
             return false;
@@ -352,7 +352,8 @@ namespace wholebodycontact_locomotion_planner{
         // currentContactを更新
         for (int i=0; i<currentContact.size(); i++) {
           if (currentContact[i]->name == guidePath[idx].second[moveContactPathId]->name) {
-            currentContact[i] = guidePath[idx].second[moveContactPathId];
+            currentContact[i]->localPose1 = guidePath[idx].second[moveContactPathId]->localPose1;
+            currentContact[i]->localPose2 = currentContact[i]->link1->T() * currentContact[i]->localPose1;
           }
         }
 
@@ -550,11 +551,12 @@ namespace wholebodycontact_locomotion_planner{
         constraint->B_localpos() = nextContacts[i]->localPose2;
         if (!attach) constraint->B_localpos().translation() += cnoid::Vector3(0,0,0.05); // 0.05だけ離す // TODO 外部環境から出す
         constraint->eval_link() = nullptr;
-        constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
+        constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 0.0; // TODO 環境モデルから出す
         constraints1.push_back(constraint);
         if (slide) {
           for (int j=0; j<stopContacts.size(); j++) {
             if (nextContacts[i]->name == stopContacts[j]->name) {
+              constraint->weight()[5] = 1.0; // 摩擦制約の関係上一致させる必要がある
               poses.push_back(nextContacts[i]->localPose2);
               cnoid::Vector3 diff = (stopContacts[j]->link1->T() * stopContacts[j]->localPose1).rotation().transpose() * (nextContacts[i]->localPose2.translation() - stopContacts[j]->localPose2.translation());
               cnoid::Matrix3 diffR = ((stopContacts[j]->link1->T() * stopContacts[j]->localPose1).rotation().transpose() * (nextContacts[i]->link1->T() * nextContacts[i]->localPose1).rotation());
@@ -625,7 +627,7 @@ namespace wholebodycontact_locomotion_planner{
       double maxValue = 0;
       for(int j=0;j<param->contactPoints[attachContacts[i]->name].size();j++){
         // TODO 環境モデルを使う
-        double weight = 1.0;
+        double weight = 5.0;
         double value=weight*cnoid::Vector3::UnitZ().dot(attachContacts[i]->link1->R() * param->contactPoints[attachContacts[i]->name][j].rotation * cnoid::Vector3::UnitZ());
         value +=(attachContacts[i]->link1->p() + attachContacts[i]->link1->R() * param->contactPoints[attachContacts[i]->name][j].translation - attachContacts[i]->localPose2.translation()).norm();
         if (value > maxValue) {
