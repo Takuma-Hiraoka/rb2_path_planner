@@ -1,5 +1,6 @@
 #include <wholebodycontact_locomotion_planner/wholebodycontact_locomotion_planner.h>
 #include <cnoid/MeshExtractor>
+#include <cnoid/YAMLReader>
 #include <choreonoid_qhull/choreonoid_qhull.h>
 
 namespace wholebodycontact_locomotion_planner{
@@ -679,7 +680,7 @@ namespace wholebodycontact_locomotion_planner{
     return model;
   }
 
-  bool createAbstractRobot(const std::shared_ptr<WBLPParam>& param,
+  void createAbstractRobot(const std::shared_ptr<WBLPParam>& param,
                            const std::vector<std::string> contactableLinkNames,
                            cnoid::BodyPtr& abstractRobot
                            ) {
@@ -724,6 +725,62 @@ namespace wholebodycontact_locomotion_planner{
         std::cerr << __PRETTY_FUNCTION__ << " convex hull " << abstractRobot->link(i)->name() << " fail" << std::endl;
       }
     }
-
   }
+  void createContactPoints(const std::shared_ptr<WBLPParam>& param,
+                           std::string contactFileName
+                           ) {
+    param->contactPoints.clear();
+    cnoid::YAMLReader reader;
+    cnoid::MappingPtr node;
+    std::string prevLinkName = "";
+    std::vector<wholebodycontact_locomotion_planner::ContactPoint> contactPoints;
+    try {
+      node = reader.loadDocument(contactFileName)->toMapping();
+    } catch(const cnoid::ValueNode::Exception& ex) {
+      std::cerr << ex.message()  << std::endl;
+    }
+    if(node){
+      cnoid::Listing* tactileSensorList = node->findListing("tactile_sensor");
+      if (!tactileSensorList->isValid()) {
+        std::cerr << "tactile_sensor list is not valid" << std::endl;
+      }else{
+        for (int i=0; i< tactileSensorList->size(); i++) {
+          cnoid::Mapping* info = tactileSensorList->at(i)->toMapping();
+          std::string linkName;
+          // linkname
+          info->extract("link", linkName);
+          if (linkName != prevLinkName) {
+            if (prevLinkName != "") {
+              param->contactPoints[prevLinkName] = contactPoints;
+            }
+            prevLinkName = linkName;
+            contactPoints.clear();
+          }
+          wholebodycontact_locomotion_planner::ContactPoint sensor;
+          // translation
+          cnoid::ValueNodePtr translation_ = info->extract("translation");
+          if(translation_){
+            cnoid::ListingPtr translationTmp = translation_->toListing();
+            if(translationTmp->size()==3){
+              sensor.translation = cnoid::Vector3(translationTmp->at(0)->toDouble(), translationTmp->at(1)->toDouble(), translationTmp->at(2)->toDouble());
+            }
+          }
+          // rotation
+          cnoid::ValueNodePtr rotation_ = info->extract("rotation");
+          if(rotation_){
+            cnoid::ListingPtr rotationTmp = rotation_->toListing();
+            if(rotationTmp->size() == 4){
+              sensor.rotation = cnoid::AngleAxisd(rotationTmp->at(3)->toDouble(),
+                                                  cnoid::Vector3{rotationTmp->at(0)->toDouble(), rotationTmp->at(1)->toDouble(), rotationTmp->at(2)->toDouble()}).toRotationMatrix();
+            }
+          }
+          contactPoints.push_back(sensor);
+        }
+        if (prevLinkName != "") {
+          param->contactPoints[prevLinkName] = contactPoints;
+        }
+      }
+    }
+  }
+
 }

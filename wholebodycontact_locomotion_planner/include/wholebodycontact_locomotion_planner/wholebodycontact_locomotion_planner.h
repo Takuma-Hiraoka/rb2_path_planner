@@ -66,9 +66,12 @@ namespace wholebodycontact_locomotion_planner{
   bool calcContactPoint(const std::shared_ptr<WBLPParam>& param,
                         const std::vector<std::shared_ptr<Contact> >& attachContacts
                         );
-  bool createAbstractRobot(const std::shared_ptr<WBLPParam>& param,
+  void createAbstractRobot(const std::shared_ptr<WBLPParam>& param,
                            const std::vector<std::string> contactableLinkNames,
                            cnoid::BodyPtr& abstractRobot
+                           );
+  void createContactPoints(const std::shared_ptr<WBLPParam>& param,
+                           std::string contactFileName
                            );
 }
 
