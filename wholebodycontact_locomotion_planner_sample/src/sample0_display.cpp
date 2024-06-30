@@ -14,7 +14,7 @@ namespace wholebodycontact_locomotion_planner_sample{
 
     std::shared_ptr<wholebodycontact_locomotion_planner::WBLPParam> param = std::make_shared<wholebodycontact_locomotion_planner::WBLPParam>();
     cnoid::BodyPtr abstractRobot;
-    generateSampleRobot(environment->obstacles, param, abstractRobot);
+    generateSampleRobot(environment->obstacles, param, abstractRobot, true);
 
     // setup viewer
     std::shared_ptr<choreonoid_viewer::Viewer> viewer = std::make_shared<choreonoid_viewer::Viewer>();

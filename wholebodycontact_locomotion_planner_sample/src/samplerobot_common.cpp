@@ -51,7 +51,8 @@ namespace wholebodycontact_locomotion_planner_sample{
 
   void generateSampleRobot(const std::shared_ptr<moveit_extensions::InterpolatedPropagationDistanceField>& field,
                            std::shared_ptr<wholebodycontact_locomotion_planner::WBLPParam>& param,
-                           cnoid::BodyPtr& abstractRobot // for visual
+                           cnoid::BodyPtr& abstractRobot, // for visual
+                           bool quadruped
                            ) {
     std::vector<std::string> contactableLinks{
         "LLEG_ANKLE_R",
@@ -74,6 +75,11 @@ namespace wholebodycontact_locomotion_planner_sample{
     cnoid::BodyLoader bodyLoader;
     param->robot = bodyLoader.load(ros::package::getPath("choreonoid") + "/share/model/SR1/SR1.body");
 
+    param->robot->link("RLEG_HIP_P")->setJointRange(-150.0/180.0*M_PI, 30.0/180.0*M_PI);
+    param->robot->link("LLEG_HIP_P")->setJointRange(-150.0/180.0*M_PI, 30.0/180.0*M_PI);
+    param->robot->link("RLEG_KNEE")->setJointRange(param->robot->link("RLEG_KNEE")->q_lower(), 150.0/180.0*M_PI);
+    param->robot->link("LLEG_KNEE")->setJointRange(param->robot->link("LLEG_KNEE")->q_lower(), 150.0/180.0*M_PI);
+
     param->robot->rootLink()->p() = cnoid::Vector3(0,0,0.65);
     param->robot->rootLink()->v().setZero();
     param->robot->rootLink()->R() = cnoid::Matrix3::Identity();
@@ -85,6 +91,19 @@ namespace wholebodycontact_locomotion_planner_sample{
         0.0, -0.349066, 0.0, 0.820305, -0.471239, 0.0,// lleg
         0.523599, 0.0, 0.0, -1.74533, -0.15708, -0.113446, -0.637045,// larm
         0.1, 0.0, 0.0}; // torso. waist-pを少し前に傾けておくと、後ろにひっくり返りにくくなる
+    if (quadruped) {
+      param->robot->rootLink()->p() = cnoid::Vector3(-0.3,0,0.55);
+      param->robot->rootLink()->v().setZero();
+      param->robot->rootLink()->R() = cnoid::rotFromRpy(0.0,M_PI/2,0.0);
+      param->robot->rootLink()->w().setZero();
+      std::vector<double> quadruped_reset_manip_pose{
+        0.0, -2.349066, 0.0, 1.420305, -0.671239, 0.0,// rleg
+          -1.523599, 0.0, 0.0, -0.74533, 0.15708, -1.013446, 0.637045,// rarm
+          0.0, -2.349066, 0.0, 1.420305, -0.671239, 0.0,// lleg
+          -1.523599, 0.0, 0.0, -0.74533, -0.15708, -1.013446, -0.637045,// larm
+          0.1, 0.0, 0.0};
+      reset_manip_pose = quadruped_reset_manip_pose;
+    }
     for(int j=0; j < param->robot->numJoints(); ++j){
       param->robot->joint(j)->q() = reset_manip_pose[j];
     }
@@ -116,7 +135,7 @@ namespace wholebodycontact_locomotion_planner_sample{
       cnoid::Affine3 transform = cnoid::Affine3::Identity();
       transform.linear() *= 1.2;
       for (int i=0; i<abstractRobot->numLinks(); i++) {
-        double expansionLength = 0.06;
+        double expansionLength = 0.1;
         if(std::find(contactableLinks.begin(),contactableLinks.end(),param->robot->link(i)->name()) == contactableLinks.end()) expansionLength = 0.0;;
         // 拡大凸包meshを作る
         cnoid::SgNodePtr collisionshape = param->robot->link(i)->collisionShape();
@@ -211,6 +230,62 @@ namespace wholebodycontact_locomotion_planner_sample{
         du[0] = 2000.0;
         rleg->du = du;
         param->currentContactPoints.push_back(rleg);
+      }
+      if (quadruped) {
+        {
+          std::shared_ptr<wholebodycontact_locomotion_planner::Contact> larm = std::make_shared<wholebodycontact_locomotion_planner::Contact>();
+          larm->name = "LARM_WRIST_R";
+          larm->link1 = param->robot->link("LARM_WRIST_R");
+          larm->localPose1.translation() = cnoid::Vector3(-0.025,0.0,-0.195);
+          larm->localPose1.linear() = cnoid::rotFromRpy(0,M_PI /2,0);
+          larm->localPose2.translation() = cnoid::Vector3(0.45,0.09,0.0);
+          Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6);
+          C.insert(0,2) = 1.0;
+          C.insert(1,0) = 1.0; C.insert(1,2) = 0.2;
+          C.insert(2,0) = -1.0; C.insert(2,2) = 0.2;
+          C.insert(3,1) = 1.0; C.insert(3,2) = 0.2;
+          C.insert(4,1) = -1.0; C.insert(4,2) = 0.2;
+          C.insert(5,2) = 0.05; C.insert(5,3) = 1.0;
+          C.insert(6,2) = 0.05; C.insert(6,3) = -1.0;
+          C.insert(7,2) = 0.05; C.insert(7,4) = 1.0;
+          C.insert(8,2) = 0.05; C.insert(8,4) = -1.0;
+          C.insert(9,2) = 0.005; C.insert(9,5) = 1.0;
+          C.insert(10,2) = 0.005; C.insert(10,5) = -1.0;
+          larm->C = C;
+          cnoid::VectorX dl = Eigen::VectorXd::Zero(11);
+          larm->dl = dl;
+          cnoid::VectorX du = 1e10 * Eigen::VectorXd::Ones(11);
+          du[0] = 2000.0;
+          larm->du = du;
+          param->currentContactPoints.push_back(larm);
+        }
+        {
+          std::shared_ptr<wholebodycontact_locomotion_planner::Contact> rarm = std::make_shared<wholebodycontact_locomotion_planner::Contact>();
+          rarm->name = "RARM_WRIST_R";
+          rarm->link1 = param->robot->link("RARM_WRIST_R");
+          rarm->localPose1.translation() = cnoid::Vector3(-0.025,0.0,-0.195);
+          rarm->localPose1.linear() = cnoid::rotFromRpy(0,M_PI /2,0);
+          rarm->localPose2.translation() = cnoid::Vector3(0.45,-0.09,0.0);
+          Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6);
+          C.insert(0,2) = 1.0;
+          C.insert(1,0) = 1.0; C.insert(1,2) = 0.2;
+          C.insert(2,0) = -1.0; C.insert(2,2) = 0.2;
+          C.insert(3,1) = 1.0; C.insert(3,2) = 0.2;
+          C.insert(4,1) = -1.0; C.insert(4,2) = 0.2;
+          C.insert(5,2) = 0.05; C.insert(5,3) = 1.0;
+          C.insert(6,2) = 0.05; C.insert(6,3) = -1.0;
+          C.insert(7,2) = 0.05; C.insert(7,4) = 1.0;
+          C.insert(8,2) = 0.05; C.insert(8,4) = -1.0;
+          C.insert(9,2) = 0.005; C.insert(9,5) = 1.0;
+          C.insert(10,2) = 0.005; C.insert(10,5) = -1.0;
+          rarm->C = C;
+          cnoid::VectorX dl = Eigen::VectorXd::Zero(11);
+          rarm->dl = dl;
+          cnoid::VectorX du = 1e10 * Eigen::VectorXd::Ones(11);
+          du[0] = 2000.0;
+          rarm->du = du;
+          param->currentContactPoints.push_back(rarm);
+        }
       }
     }
 

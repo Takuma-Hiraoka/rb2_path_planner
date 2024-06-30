@@ -405,7 +405,7 @@ namespace wholebodycontact_locomotion_planner{
           }
           if(attach) attachContact.push_back(guidePath[nextId].second[i]);
         }
-        if (detachContact.size() != 0 && attachContact.size() != 0) {
+        if (detachContact.size() != 0 || attachContact.size() != 0) {
           // まず接触を離す
           {
             std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
@@ -622,7 +622,7 @@ namespace wholebodycontact_locomotion_planner{
 
   bool calcContactPoint(const std::shared_ptr<WBLPParam>& param,
                         const std::vector<std::shared_ptr<Contact> >& attachContacts
-                        ) {
+                        ) { // 本来はIKの中で探索したい
     for (int i=0;i<attachContacts.size();i++) {
       double maxValue = -1000;
       for(int j=0;j<param->contactPoints[attachContacts[i]->name].size();j++){
