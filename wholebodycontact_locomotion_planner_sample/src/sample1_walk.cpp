@@ -72,8 +72,7 @@ namespace wholebodycontact_locomotion_planner_sample{
     global_inverse_kinematics_solver::frame2Link(initialPose,param->variables);
     param->robot->calcForwardKinematics(false);
     param->robot->calcCenterOfMass();
-    bool solved = wholebodycontact_locomotion_planner::solveWBLP(environment,
-                                                                 param,
+    bool solved = wholebodycontact_locomotion_planner::solveWBLP(param,
                                                                  path,
                                                                  contactPath);
     if (!solved) return;

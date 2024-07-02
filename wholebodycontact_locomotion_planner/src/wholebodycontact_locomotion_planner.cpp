@@ -206,8 +206,7 @@ namespace wholebodycontact_locomotion_planner{
 
   }
 
-  bool solveWBLP(const std::shared_ptr<Environment>& environment,
-                 const std::shared_ptr<WBLPParam>& param,
+  bool solveWBLP(const std::shared_ptr<WBLPParam>& param,
                  const std::vector<std::pair<std::vector<double>,std::vector<std::shared_ptr<Contact> > > >& guidePath,
                  std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > >& outputPath // angle, contact
                  ) {
@@ -219,7 +218,7 @@ namespace wholebodycontact_locomotion_planner{
       std::vector<std::shared_ptr<Contact> > currentContact = param->currentContactPoints;
     while(pathId < guidePath.size()) {
       // 接触が切り替わる直前,または進むindexの最大値だけ進んだIDを探す
-      // TODO 接触リンクが同じでも、離れすぎ/接触面が変わる等では切り替わりと扱う
+      // 接触リンクが同じで接触面が異なる場合も、はじめのdetach-attachで遷移可能.
       int nextId;
       bool change = false;
       for (nextId=pathId+1;nextId<guidePath.size() && !change && nextId<pathId + param->maxSubGoalIdx;nextId++) {
@@ -392,7 +391,7 @@ namespace wholebodycontact_locomotion_planner{
 
         outputPath.insert(outputPath.end(), path.begin(), path.end());
       }
-      // TODO 接触の増加・減少処理
+      // 接触の増加・減少処理
       if (pathId==guidePath.size()-1) { // 計画完了
         break;
       } else {
@@ -440,7 +439,6 @@ namespace wholebodycontact_locomotion_planner{
               param->viewer->drawObjects();
             }
           }
-          // TODO この間のgikによる補間
           // 追加する接触のリンク座標を決める.
           {
             std::vector<double> preContactPose;
@@ -559,7 +557,7 @@ namespace wholebodycontact_locomotion_planner{
         std::shared_ptr<ik_constraint2::PositionConstraint> constraint = std::make_shared<ik_constraint2::PositionConstraint>();
         constraint->A_link() = nextContacts[i]->link1;
         constraint->A_localpos() = nextContacts[i]->localPose1;
-        if (!attach || slide) { // 接触ローカル位置は変えない // TODO きれいにする
+        if (!attach || slide) { // 接触ローカル位置は変えない
           for (int j=0; j<stopContacts.size(); j++) {
             if (nextContacts[i]->name == stopContacts[j]->name) {
               constraint->A_localpos() = stopContacts[j]->localPose1;
