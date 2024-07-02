@@ -798,6 +798,17 @@ namespace wholebodycontact_locomotion_planner{
           std::string linkName;
           // linkname
           info->extract("link", linkName);
+          {
+            bool found=false;
+            for (int j=0;j<param->robot->numLinks();j++) {
+              if (param->robot->link(j)->name() == linkName) found = true; 
+            }
+            if (!found) {
+              for (int j=0;j<param->robot->numLinks();j++) {
+                if (param->robot->link(j)->collisionShape()->child(0)->name() == linkName) linkName = param->robot->link(j)->name();
+              }
+            }
+          }
           if (linkName != prevLinkName) {
             if (prevLinkName != "") {
               param->contactPoints[prevLinkName] = contactPoints;
