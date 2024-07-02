@@ -11,6 +11,8 @@ namespace wholebodycontact_locomotion_planner_sample{
                          double height=0.3);
   void generateTunnelWorld(cnoid::BodyPtr& obstacle, // for visual
                          std::shared_ptr<wholebodycontact_locomotion_planner::Environment>& environment);
+  void generateWallWorld(cnoid::BodyPtr& obstacle, // for visual
+                         std::shared_ptr<wholebodycontact_locomotion_planner::Environment>& environment);
 
 };
 
