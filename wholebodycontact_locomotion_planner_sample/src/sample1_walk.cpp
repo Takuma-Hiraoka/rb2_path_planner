@@ -34,11 +34,13 @@ namespace wholebodycontact_locomotion_planner_sample{
     param->gikRootParam.debugLevel = 1;
     param->gikRootParam.timeout = 20;
     param->gikRootParam.goalBias = 0.2;
-    param->gikRootParam.threads = 10;
+    param->gikRootParam.threads = 20;
+    param->OptimizeTrajectory = true; // 軌道最適化を行うと外れ値的な接触や接触の数自体を減らせる
+    param->toParam.shortcut = true;
     //    param->gikRootParam.pikParam.debugLevel = 1;
 
     cnoid::Isometry3 goal = param->robot->rootLink()->T();
-    goal.translation()[0] += 0.1;
+    goal.translation()[0] += 0.5;
     //    goal.translation()[2] += 0.35;
 
     std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<wholebodycontact_locomotion_planner::Contact> > > > path;

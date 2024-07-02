@@ -302,7 +302,7 @@ namespace wholebodycontact_locomotion_planner{
           }
         }
         idx--;
-        if(idx >= pathId) { // detach-attachで一つでも進むことができる場合
+        if(idx >= pathId) { // detach-attachで一つでも進むことができる場合. idx==pathIdのときは動いていないが、スタックしているときにIKを解くことを繰り返すことにより先にすすめることがある. TODO 解けないケースの対処法
 
           global_inverse_kinematics_solver::frame2Link(lastLandingFrame, param->variables);
           param->robot->calcForwardKinematics(false);
@@ -499,6 +499,8 @@ namespace wholebodycontact_locomotion_planner{
                       bool attach,
                       bool slide) {
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints0;
+    double defaultTolerance = 0.06;
+    double defaultPrecision = 0.05;
     for (int i=0; i<param->constraints.size(); i++) {
       if (typeid(*(param->constraints[i]))==typeid(ik_constraint2_distance_field::DistanceFieldCollisionConstraint)) {
         bool skip=false;
@@ -506,7 +508,16 @@ namespace wholebodycontact_locomotion_planner{
           if (stopContacts[j]->name == std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->A_link()->name()) skip = true;
         }
         for (int j=0; j<nextContacts.size() && !skip;j++) {
-          if (nextContacts[j]->name == std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->A_link()->name()) skip = true;
+          if (nextContacts[j]->name == std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->A_link()->name()) {
+            if (attach) { // 実際に触れされるときだけ、触れるリンクの干渉は無視する. slideならはじめに着いたとき、detach-attachならdetachのときに干渉を考慮した姿勢が出ているので、そこから先は干渉しないと仮定.
+              skip = true;
+            } else {
+              defaultTolerance = std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->tolerance();
+              defaultPrecision = std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->precision();
+              std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->tolerance() = 0.02;
+              std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->precision() = 0.01;
+            }
+          }
         }
         if (skip) continue;
       }
@@ -527,7 +538,7 @@ namespace wholebodycontact_locomotion_planner{
         for (int j=0; j<nextContacts.size(); j++) {
           if (stopContacts[i]->name == nextContacts[j]->name) move=true;;
         }
-        if (move) continue; // このcontactを動かす予定. TODO attachしないなら、干渉しないようにする. ここからattachするまでは干渉しないと仮定
+        if (move) continue; // このcontactを動かす予定.
         std::shared_ptr<ik_constraint2::PositionConstraint> constraint = std::make_shared<ik_constraint2::PositionConstraint>();
         constraint->A_link() = stopContacts[i]->link1;
         constraint->A_localpos() = stopContacts[i]->localPose1;
@@ -625,6 +636,17 @@ namespace wholebodycontact_locomotion_planner{
     // for ( int i=0; i<nominals.size(); i++ ) {
     //   std::cerr << "nominals: "<< nominals[i]->isSatisfied() << std::endl;
     // }
+    for (int i=0; i<param->constraints.size(); i++) {
+      if (typeid(*(param->constraints[i]))==typeid(ik_constraint2_distance_field::DistanceFieldCollisionConstraint)) {
+        for (int j=0; j<nextContacts.size();j++) {
+          if (nextContacts[j]->name == std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->A_link()->name()) {
+            std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->tolerance() = defaultTolerance;
+            std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->precision() = defaultPrecision;
+          }
+        }
+      }
+    }
+
     return solved;
   }
 

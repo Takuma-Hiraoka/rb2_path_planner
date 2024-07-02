@@ -36,6 +36,8 @@ namespace wholebodycontact_locomotion_planner_sample{
     param->gikRootParam.pikParam.debugLevel = 0;
     param->gikRootParam.timeout = 20;
     param->gikRootParam.threads = 20;
+    param->OptimizeTrajectory = true; // 軌道最適化を行うと外れ値的な接触や接触の数自体を減らせる
+    param->toParam.shortcut = true;
 
     cnoid::Isometry3 goal = param->robot->rootLink()->T();
     goal.translation()[0] += 3.3;
