@@ -5,7 +5,8 @@
 
 namespace wholebodycontact_locomotion_planner_sample{
   void generateStepWorld(cnoid::BodyPtr& obstacle, // for visual
-                         std::shared_ptr<wholebodycontact_locomotion_planner::Environment>& environment
+                         std::shared_ptr<wholebodycontact_locomotion_planner::Environment>& environment,
+                         double height
                          ){
     cnoid::MeshGenerator meshGenerator;
     obstacle = new cnoid::Body();
@@ -30,7 +31,7 @@ namespace wholebodycontact_locomotion_planner_sample{
           material->setTransparency(0);
           shape->setMaterial(material);
           cnoid::SgPosTransformPtr posTransform = new cnoid::SgPosTransform();
-          posTransform->translation() = cnoid::Vector3(1.5,0,0.35);
+          posTransform->translation() = cnoid::Vector3(1.5,0,height+0.05);
           posTransform->addChild(shape);
           rootLink->addShapeNode(posTransform);
         }
