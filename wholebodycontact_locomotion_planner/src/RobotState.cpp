@@ -15,16 +15,7 @@ namespace wholebodycontact_locomotion_planner {
     scfrConstraint->maxCError() = 0.1;
     keepScfrConstraint->scfrConstraint() = scfrConstraint;
     for(int i=0;i<this->reachabilityConstraints.size();i++){
-      std::shared_ptr<ik_constraint2_bullet::BulletKeepCollisionConstraint> constraint = this->reachabilityConstraints[i];
-      constraint->B_link() = environment->surfacesBody->rootLink();
-      constraint->B_link_bulletModel() = constraint->B_link();
-      constraint->B_bulletModel() = environment->surfacesBulletModel;
-      constraint->useSingleMeshB() = false; // support polygonを個別にチェック
-      choreonoid_cddlib::convertToFACEExpressions(constraint->B_link()->collisionShape(),
-                                                  constraint->B_FACE_C(),
-                                                  constraint->B_FACE_dl(),
-                                                  constraint->B_FACE_du());
-      keepScfrConstraint->keepCollisionConstraints().push_back(constraint);
+      keepScfrConstraint->keepCollisionConstraints().push_back(this->reachabilityConstraints[i]);
     }
     keepScfrConstraint->updateBounds();
     //    keepScfrConstraint->debugLevel() = 2;

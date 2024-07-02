@@ -21,7 +21,6 @@ namespace wholebodycontact_locomotion_planner_sample{
     viewer->objects(param->robot);
     viewer->objects(abstractRobot);
     viewer->objects(obstacle);
-    viewer->objects(environment->surfacesBody);
 
     viewer->drawObjects();
   }

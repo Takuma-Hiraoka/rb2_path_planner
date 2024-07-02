@@ -268,22 +268,15 @@ namespace wholebodycontact_locomotion_planner_sample{
         // reachability
         for (int i=0; i<param->robot->numLinks(); i++) {
           if(std::find(contactableLinkNames.begin(),contactableLinkNames.end(),param->robot->link(i)->name()) == contactableLinkNames.end()) continue;
-          std::shared_ptr<ik_constraint2_bullet::BulletKeepCollisionConstraint> constraint = std::make_shared<ik_constraint2_bullet::BulletKeepCollisionConstraint>();
+          std::shared_ptr<ik_constraint2_distance_field::DistanceFieldCollisionConstraint> constraint = std::make_shared<ik_constraint2_distance_field::DistanceFieldCollisionConstraint>();
           constraint->A_link() = param->robot->link(i);
-          constraint->A_link_bulletModel() = constraint->A_link();
-          constraint->A_bulletModel() = choreonoid_bullet::convertToBulletModels(abstractRobot->link(i)->collisionShape());
-          constraint->B_link() = constraint->A_link(); // dummy. solve時にenvironmentから設定し直す
-          constraint->precision() = 0.01;
-          constraint->A_FACE_C().resize(1); constraint->A_FACE_dl().resize(1); constraint->A_FACE_du().resize(1);
-          choreonoid_cddlib::convertToFACEExpression(constraint->A_link()->collisionShape(),
-                                                     constraint->A_FACE_C()[0],
-                                                     constraint->A_FACE_dl()[0],
-                                                     constraint->A_FACE_du()[0]);
-          constraint->B_FACE_C() = constraint->A_FACE_C();
-          constraint->B_FACE_dl() = constraint->A_FACE_dl();
-          constraint->B_FACE_du() = constraint->A_FACE_du();
-          constraint->debugLevel() = 0;
-          constraint->updateBounds(); // キャッシュを内部に作る.
+          constraint->field() = field;
+          constraint->tolerance() = 0.1; // ちょうど干渉すると法線ベクトルが変になることがあるので, 1回のiterationで動きうる距離よりも大きくせよ.
+          //          constraint->precision() = 0.01;
+          constraint->ignoreDistance() = 0.5; // 大きく動くので、ignoreも大きくする必要がある
+          //      constraint->maxError() = 0.1; // めり込んだら一刻も早く離れたい
+          constraint->invert() = true; // 距離をtolerance以下にする
+          constraint->updateBounds(); // キャッシュを内部に作る. キャッシュを作ったあと、10スレッドぶんコピーする方が速い
           mode->reachabilityConstraints.push_back(constraint);
         }
       }

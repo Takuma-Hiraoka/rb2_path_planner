@@ -172,7 +172,11 @@ namespace wholebodycontact_locomotion_planner{
             contact->link1 = it->second->reachabilityConstraints[j]->A_link();
             contact->localPose1 = cnoid::Isometry3::Identity(); // 前後のstateの接触位置は基本的に同じであるためWBLP時に決定する
             contact->link2 = nullptr;
-            contact->localPose2.translation() = it->second->reachabilityConstraints[j]->currentp(); // TODO 環境から姿勢を出す.
+            contact->localPose2.translation() = it->second->reachabilityConstraints[j]->B_currentLocalp();
+            cnoid::Vector3d z_axis = it->second->reachabilityConstraints[j]->currentDirection();
+            cnoid::Vector3d x_axis = (z_axis==cnoid::Vector3d::UnitY()) ? cnoid::Vector3d::UnitZ() : cnoid::Vector3d::UnitY().cross(z_axis);
+            cnoid::Vector3d y_axis = z_axis.cross(x_axis);
+            contact->localPose2.linear().col(0) = x_axis.normalized(); contact->localPose2.linear().col(1) = y_axis.normalized(); contact->localPose2.linear().col(2) = z_axis.normalized();
             Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6); // TODO 干渉形状から出す？
             C.insert(0,2) = 1.0;
             C.insert(1,0) = 1.0; C.insert(1,2) = 0.2;
@@ -523,7 +527,7 @@ namespace wholebodycontact_locomotion_planner{
         for (int j=0; j<nextContacts.size(); j++) {
           if (stopContacts[i]->name == nextContacts[j]->name) move=true;;
         }
-        if (move) continue; // このcontactを動かす予定
+        if (move) continue; // このcontactを動かす予定. TODO attachしないなら、干渉しないようにする. ここからattachするまでは干渉しないと仮定
         std::shared_ptr<ik_constraint2::PositionConstraint> constraint = std::make_shared<ik_constraint2::PositionConstraint>();
         constraint->A_link() = stopContacts[i]->link1;
         constraint->A_localpos() = stopContacts[i]->localPose1;
@@ -552,9 +556,10 @@ namespace wholebodycontact_locomotion_planner{
         }
         constraint->B_link() = nextContacts[i]->link2;
         constraint->B_localpos() = nextContacts[i]->localPose2;
-        if (!attach) constraint->B_localpos().translation() += cnoid::Vector3(0,0,0.05); // 0.05だけ離す // TODO 外部環境から出す
+        if (!attach) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.05); // 0.05だけ離す
         constraint->eval_link() = nullptr;
-        constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 0.01; // TODO 環境モデルから出す
+        constraint->eval_localR() = nextContacts[i]->localPose2.rotation();
+        constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 0.01;
         constraints1.push_back(constraint);
         if (slide) {
           for (int j=0; j<stopContacts.size(); j++) {
@@ -629,9 +634,8 @@ namespace wholebodycontact_locomotion_planner{
     for (int i=0;i<attachContacts.size();i++) {
       double maxValue = -1000;
       for(int j=0;j<param->contactPoints[attachContacts[i]->name].size();j++){
-        // TODO 環境モデルを使う
         double weight = 0.1;
-        double value=weight*cnoid::Vector3::UnitZ().dot(attachContacts[i]->link1->R() * param->contactPoints[attachContacts[i]->name][j].rotation * cnoid::Vector3::UnitZ());
+        double value=weight*(attachContacts[i]->localPose2.linear()*cnoid::Vector3::UnitZ()).dot(attachContacts[i]->link1->R() * param->contactPoints[attachContacts[i]->name][j].rotation * cnoid::Vector3::UnitZ());
         value -=(attachContacts[i]->link1->p() + attachContacts[i]->link1->R() * param->contactPoints[attachContacts[i]->name][j].translation - attachContacts[i]->localPose2.translation()).norm();
         if (value > maxValue) {
           maxValue = value;

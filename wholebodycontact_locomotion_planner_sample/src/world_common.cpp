@@ -59,81 +59,6 @@ namespace wholebodycontact_locomotion_planner_sample{
       }
       environment->obstacles->addPointsToField(vertices);
     }
-
-    {
-      // Supoort Polygon
-      environment->surfacesBody->setRootLink(environment->surfacesBody->rootLink());
-      {
-        wholebodycontact_locomotion_planner::ContactableRegion region;
-        region.pose.translation() = cnoid::Vector3(0.0, 0.0, 0.0);
-        region.shape.resize(3,4);
-        region.shape.col(0) = cnoid::Vector3(+1.9,+0.9,0.0);
-        region.shape.col(1) = cnoid::Vector3(-1.9,+0.9,0.0);
-        region.shape.col(2) = cnoid::Vector3(-1.9,-0.9,0.0);
-        region.shape.col(3) = cnoid::Vector3(+1.9,-0.9,0.0);
-
-        cnoid::SgShapePtr shape = new cnoid::SgShape();
-        cnoid::MeshGenerator::Extrusion extrusion;
-        for(int i=0;i<region.shape.cols();i++){
-          extrusion.crossSection.push_back(region.shape.col(i).head<2>());
-        }
-        extrusion.spine.push_back(cnoid::Vector3(0,0,-0.005));
-        extrusion.spine.push_back(cnoid::Vector3(0,0,0.0));
-        extrusion.orientation.push_back(cnoid::AngleAxis(0, cnoid::Vector3::UnitX()));
-        extrusion.orientation.push_back(cnoid::AngleAxis(0, cnoid::Vector3::UnitX()));
-        extrusion.scale.push_back(cnoid::Vector2(1,1));
-        extrusion.scale.push_back(cnoid::Vector2(1,1));
-        shape->setMesh(meshGenerator.generateExtrusion(extrusion));
-
-        region.bulletModel = choreonoid_bullet::convertToBulletModel(shape);
-        environment->surfaces.push_back(region);
-
-        cnoid::SgMaterialPtr material = new cnoid::SgMaterial();
-        material->setTransparency(0);
-        material->setDiffuseColor(cnoid::Vector3f(1.0,0.0,0.0));
-        shape->setMaterial(material);
-        cnoid::SgPosTransformPtr posTransform = new cnoid::SgPosTransform();
-        posTransform->T() = region.pose;
-        posTransform->addChild(shape);
-        environment->surfacesBody->rootLink()->addShapeNode(posTransform);
-      }
-      {
-        wholebodycontact_locomotion_planner::ContactableRegion region;
-        region.pose.translation() = cnoid::Vector3(1.5,0.0,0.4);
-        region.shape.resize(3,4);
-        region.shape.col(0) = cnoid::Vector3(+0.4,+0.4,0.0);
-        region.shape.col(1) = cnoid::Vector3(-0.4,+0.4,0.0);
-        region.shape.col(2) = cnoid::Vector3(-0.4,-0.4,0.0);
-        region.shape.col(3) = cnoid::Vector3(+0.4,-0.4,0.0);
-
-        cnoid::SgShapePtr shape = new cnoid::SgShape();
-        cnoid::MeshGenerator::Extrusion extrusion;
-        for(int i=0;i<region.shape.cols();i++){
-          extrusion.crossSection.push_back(region.shape.col(i).head<2>());
-        }
-        extrusion.spine.push_back(cnoid::Vector3(0,0,-0.005));
-        extrusion.spine.push_back(cnoid::Vector3(0,0,0.0));
-        extrusion.orientation.push_back(cnoid::AngleAxis(0, cnoid::Vector3::UnitX()));
-        extrusion.orientation.push_back(cnoid::AngleAxis(0, cnoid::Vector3::UnitX()));
-        extrusion.scale.push_back(cnoid::Vector2(1,1));
-        extrusion.scale.push_back(cnoid::Vector2(1,1));
-        shape->setMesh(meshGenerator.generateExtrusion(extrusion));
-
-        region.bulletModel = choreonoid_bullet::convertToBulletModel(shape);
-        environment->surfaces.push_back(region);
-
-        cnoid::SgMaterialPtr material = new cnoid::SgMaterial();
-        material->setTransparency(0);
-        material->setDiffuseColor(cnoid::Vector3f(1.0,0.0,0.0));
-        shape->setMaterial(material);
-        cnoid::SgPosTransformPtr posTransform = new cnoid::SgPosTransform();
-        posTransform->T() = region.pose;
-        posTransform->addChild(shape);
-        environment->surfacesBody->rootLink()->addShapeNode(posTransform);
-      }
-    }
-    // bulletModelの原点の位置が違うので, 上とはべつで再度変換する必要がある
-    environment->surfacesBulletModel = choreonoid_bullet::convertToBulletModels(environment->surfacesBody->rootLink()->collisionShape());
   }
 
   void generateTunnelWorld(cnoid::BodyPtr& obstacle, // for visual
@@ -213,46 +138,5 @@ namespace wholebodycontact_locomotion_planner_sample{
       }
       environment->obstacles->addPointsToField(vertices);
     }
-
-    {
-      // Supoort Polygon
-      environment->surfacesBody->setRootLink(environment->surfacesBody->rootLink());
-      {
-        wholebodycontact_locomotion_planner::ContactableRegion region;
-        region.pose.translation() = cnoid::Vector3(1.5, 0.0, 0.0);
-        region.shape.resize(3,4);
-        region.shape.col(0) = cnoid::Vector3(+1.9,+0.35,0.0);
-        region.shape.col(1) = cnoid::Vector3(-1.9,+0.35,0.0);
-        region.shape.col(2) = cnoid::Vector3(-1.9,-0.35,0.0);
-        region.shape.col(3) = cnoid::Vector3(+1.9,-0.35,0.0);
-
-        cnoid::SgShapePtr shape = new cnoid::SgShape();
-        cnoid::MeshGenerator::Extrusion extrusion;
-        for(int i=0;i<region.shape.cols();i++){
-          extrusion.crossSection.push_back(region.shape.col(i).head<2>());
-        }
-        extrusion.spine.push_back(cnoid::Vector3(0,0,-0.005));
-        extrusion.spine.push_back(cnoid::Vector3(0,0,0.0));
-        extrusion.orientation.push_back(cnoid::AngleAxis(0, cnoid::Vector3::UnitX()));
-        extrusion.orientation.push_back(cnoid::AngleAxis(0, cnoid::Vector3::UnitX()));
-        extrusion.scale.push_back(cnoid::Vector2(1,1));
-        extrusion.scale.push_back(cnoid::Vector2(1,1));
-        shape->setMesh(meshGenerator.generateExtrusion(extrusion));
-
-        region.bulletModel = choreonoid_bullet::convertToBulletModel(shape);
-        environment->surfaces.push_back(region);
-
-        cnoid::SgMaterialPtr material = new cnoid::SgMaterial();
-        material->setTransparency(0);
-        material->setDiffuseColor(cnoid::Vector3f(1.0,0.0,0.0));
-        shape->setMaterial(material);
-        cnoid::SgPosTransformPtr posTransform = new cnoid::SgPosTransform();
-        posTransform->T() = region.pose;
-        posTransform->addChild(shape);
-        environment->surfacesBody->rootLink()->addShapeNode(posTransform);
-      }
-    }
-    // bulletModelの原点の位置が違うので, 上とはべつで再度変換する必要がある
-    environment->surfacesBulletModel = choreonoid_bullet::convertToBulletModels(environment->surfacesBody->rootLink()->collisionShape());
   }
 }
