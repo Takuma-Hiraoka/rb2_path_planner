@@ -24,7 +24,9 @@ namespace wholebodycontact_locomotion_planner{
     std::vector<std::shared_ptr<Contact> > currentContactPoints;
     std::vector<std::vector<cnoid::LinkPtr> > prioritizedLinks;
     global_inverse_kinematics_solver::GIKParam gikRootParam;
+    global_inverse_kinematics_solver::GIKParam gikParam;
     bool OptimizeTrajectory = false; // 関節角度軌道を最適化、近いstate同士をショートカットするかどうか. もともと粗い軌道でありショートカットできる数は少なく、計算時間が増えるデメリットのほうが大きい.
+    bool useSwingGIK = false; // TODO なぜか遅い
     trajectory_optimizer::TOParam toParam;
 
     WBLPParam() {
@@ -43,6 +45,15 @@ namespace wholebodycontact_locomotion_planner{
       gikRootParam.pikParam.calcVelocity = false; // 疎な軌道生成なので、velocityはチェックしない
       gikRootParam.pikParam.convergeThre = 5e-2; // 要パラチューン. IKConsraintのmaxErrorより小さくないと、収束誤判定する. maxErrorが5e-2の場合、5e-2だと大きすぎる. 5e-3だと小さすぎて時間がかかる. ikのwe, wn, wmax, maxErrorといったパラメータと連動してパラチューンせよ.
       gikRootParam.pikParam.pathOutputLoop = 5;
+
+      gikParam = gikRootParam;
+      gikParam.delta = 0.4;
+      gikParam.projectCellSize = 0.05;
+      gikParam.threads = 20;
+      gikParam.timeout = 10; // 滑りがあるので遅いときは諦めて良い
+      gikParam.goalBias = 0.05;
+      /* gikParam.pikParam.we = 1e2; // 逆運動学が振動しないこと優先. 1e0だと不安定. 1e3だと大きすぎる */
+      /* gikParam.pikParam.wmax = 1e1; // 1e2程度にすると関節がめり込まなくなるが、ほとんど動かない. */
 
       toParam.shortcutThre=4e-2;
     };

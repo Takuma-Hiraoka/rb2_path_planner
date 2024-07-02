@@ -532,6 +532,7 @@ namespace wholebodycontact_locomotion_planner{
     std::vector<cnoid::VectorX> dls;
     std::vector<cnoid::VectorX> dus;
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints1;
+    std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > goals;
     {
       for (int i=0; i<stopContacts.size(); i++) {
         bool move=false;
@@ -571,7 +572,8 @@ namespace wholebodycontact_locomotion_planner{
         constraint->eval_link() = nullptr;
         constraint->eval_localR() = nextContacts[i]->localPose2.rotation();
         constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 0.01;
-        constraints1.push_back(constraint);
+        if (!attach && param->useSwingGIK) {goals.push_back(constraint); // 浮いている時はGIKをつかう
+        }else{constraints1.push_back(constraint);}
         if (slide) {
           for (int j=0; j<stopContacts.size(); j++) {
             if (nextContacts[i]->name == stopContacts[j]->name) {
@@ -611,20 +613,41 @@ namespace wholebodycontact_locomotion_planner{
     scfrConstraint->dus() = dus;
     constraints1.push_back(scfrConstraint);
 
-    std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0, constraints1, nominals};
-    prioritized_inverse_kinematics_solver2::IKParam pikParam;
-    pikParam.checkFinalState=true;
-    pikParam.calcVelocity = false;
-    pikParam.debugLevel = 0;
-    pikParam.we = 1e2;
-    pikParam.we = 1e1;
-    pikParam.maxIteration = 100;
-    std::vector<std::shared_ptr<prioritized_qp_base::Task> > prevTasks;
-    bool solved =  prioritized_inverse_kinematics_solver2::solveIKLoop(param->variables,
-                                                                       constraints,
-                                                                       prevTasks,
-                                                                       pikParam
-                                                                       );
+    bool solved;
+    if (attach || !param->useSwingGIK) {
+      std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0, constraints1, nominals};
+      prioritized_inverse_kinematics_solver2::IKParam pikParam;
+      pikParam.checkFinalState=true;
+      pikParam.calcVelocity = false;
+      pikParam.debugLevel = 0;
+      pikParam.we = 1e2;
+      pikParam.we = 1e1;
+      pikParam.maxIteration = 100;
+      std::vector<std::shared_ptr<prioritized_qp_base::Task> > prevTasks;
+      solved  =  prioritized_inverse_kinematics_solver2::solveIKLoop(param->variables,
+                                                                     constraints,
+                                                                     prevTasks,
+                                                                     pikParam
+                                                                     );
+    } else {
+      std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0, constraints1};
+      param->gikParam.projectLink.resize(1);
+      param->gikParam.projectLink[0] = nextContacts[0]->link1;
+      param->gikParam.projectLocalPose = nextContacts[0]->localPose1;
+      std::shared_ptr<std::vector<std::vector<double> > > path;
+      // 関節角度上下限を厳密に満たしていないと、omplのstart stateがエラーになるので
+      for(int i=0;i<param->variables.size();i++){
+        if(param->variables[i]->isRevoluteJoint() || param->variables[i]->isPrismaticJoint()) {
+          param->variables[i]->q() = std::max(std::min(param->variables[i]->q(),param->variables[i]->q_upper()),param->variables[i]->q_lower());
+        }
+      }
+      solved = global_inverse_kinematics_solver::solveGIK(param->variables,
+                                                          constraints,
+                                                          goals,
+                                                          nominals,
+                                                          param->gikParam,
+                                                          path);
+    }
     // for ( int i=0; i<constraints0.size(); i++ ) {
     //   std::cerr << "constraints0: "<< constraints0[i]->isSatisfied() << std::endl;
     // }
