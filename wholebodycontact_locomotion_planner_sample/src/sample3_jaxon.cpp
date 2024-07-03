@@ -4,6 +4,7 @@
 #include <ros/package.h>
 
 #include <wholebodycontact_locomotion_planner/RobotState.h>
+#include <wholebodycontact_locomotion_planner/Util.h>
 #include <wholebodycontact_locomotion_planner/wholebodycontact_locomotion_planner.h>
 #include <choreonoid_bullet/choreonoid_bullet.h>
 #include <choreonoid_cddlib/choreonoid_cddlib.h>

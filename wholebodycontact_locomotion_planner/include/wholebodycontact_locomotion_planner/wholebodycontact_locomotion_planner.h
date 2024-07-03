@@ -67,19 +67,6 @@ namespace wholebodycontact_locomotion_planner{
                  const std::vector<std::pair<std::vector<double>,std::vector<std::shared_ptr<Contact> > > >& guidePath,
                  std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > >& outputPath // angle, contact
                  );
-  bool solveContactIK(const std::shared_ptr<WBLPParam>& param,
-                      const std::vector<std::shared_ptr<Contact> >& stopContact,
-                      const std::vector<std::shared_ptr<Contact> >& nextContacts,
-                      const std::vector<std::shared_ptr<ik_constraint2::IKConstraint> >& nominals,
-                      bool attach,
-                      bool slide);
-  bool calcContactPoint(const std::shared_ptr<WBLPParam>& param,
-                        const std::vector<std::shared_ptr<Contact> >& attachContacts
-                        );
-  void createAbstractRobot(const std::shared_ptr<WBLPParam>& param,
-                           const std::vector<std::string> contactableLinkNames,
-                           cnoid::BodyPtr& abstractRobot
-                           );
   void createContactPoints(const std::shared_ptr<WBLPParam>& param,
                            std::string contactFileName
                            );

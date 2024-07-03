@@ -3,6 +3,7 @@
 
 #include <cnoid/Body>
 #include <wholebodycontact_locomotion_planner/RobotState.h>
+#include <wholebodycontact_locomotion_planner/Util.h>
 #include <wholebodycontact_locomotion_planner/wholebodycontact_locomotion_planner.h>
 
 namespace wholebodycontact_locomotion_planner_sample{
