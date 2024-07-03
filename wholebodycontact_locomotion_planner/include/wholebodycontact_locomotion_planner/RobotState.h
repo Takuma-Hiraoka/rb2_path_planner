@@ -42,9 +42,11 @@ namespace wholebodycontact_locomotion_planner {
     cnoid::Isometry3 localPose1 = cnoid::Isometry3::Identity();
     cnoid::LinkPtr link2 = nullptr; // nullptrならworld
     cnoid::Isometry3 localPose2 = cnoid::Isometry3::Identity();
+    cnoid::BoundingBox bbx;
     Eigen::SparseMatrix<double,Eigen::RowMajor> C{0,6}; // localPose1 frame/origin. link1がlink2から受ける力に関する接触力制約. 列は6. C, ld, udの行数は同じ.
     cnoid::VectorX dl;
     cnoid::VectorX du;
+    void calcBoundingBox();
   };
 }
 

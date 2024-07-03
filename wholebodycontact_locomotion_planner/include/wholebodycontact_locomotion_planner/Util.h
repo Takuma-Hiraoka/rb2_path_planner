@@ -12,9 +12,15 @@ namespace wholebodycontact_locomotion_planner{
                       const std::vector<std::shared_ptr<ik_constraint2::IKConstraint> >& nominals,
                       bool attach,
                       bool slide);
+  void calcIgnoreBoundingBox(const std::vector<std::shared_ptr<ik_constraint2::IKConstraint> >& constraints,
+                             const std::shared_ptr<Contact>& contact,
+                             int level=1
+                             ); // constraint中のcollisionConstraintについて、contactのlink1のlevel等親のリンクの干渉回避である場合、contactのlink1のBoundingBoxを追加する.
   bool calcContactPoint(const std::shared_ptr<WBLPParam>& param,
                         const std::vector<std::shared_ptr<Contact> >& attachContacts
                         );
+  cnoid::SgMeshPtr convertToSgMesh (const cnoid::SgNodePtr collisionshape);
+
   void createAbstractRobot(const std::shared_ptr<WBLPParam>& param,
                            const std::vector<std::string> contactableLinkNames,
                            cnoid::BodyPtr& abstractRobot

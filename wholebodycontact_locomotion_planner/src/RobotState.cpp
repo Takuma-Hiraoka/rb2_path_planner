@@ -1,4 +1,5 @@
 #include <wholebodycontact_locomotion_planner/RobotState.h>
+#include <wholebodycontact_locomotion_planner/Util.h>
 #include <choreonoid_cddlib/choreonoid_cddlib.h>
 
 namespace wholebodycontact_locomotion_planner {
@@ -20,5 +21,12 @@ namespace wholebodycontact_locomotion_planner {
     //    keepScfrConstraint->debugLevel() = 2;
     //    scfrConstraint->SCFRparam().debugLevel = 1;
     return keepScfrConstraint;
+  }
+  void Contact::calcBoundingBox() {
+    cnoid::SgMeshPtr mesh = convertToSgMesh(this->link1->collisionShape());
+    if(mesh && (mesh->numTriangles() != 0)) {
+      mesh->updateBoundingBox();
+      this->bbx = mesh->boundingBox();
+    }
   }
 }

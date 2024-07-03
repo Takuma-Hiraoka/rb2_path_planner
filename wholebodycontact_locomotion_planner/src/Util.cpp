@@ -65,6 +65,7 @@ namespace wholebodycontact_locomotion_planner{
         Cs.push_back(stopContacts[i]->C);
         dls.push_back(stopContacts[i]->dl);
         dus.push_back(stopContacts[i]->du);
+        calcIgnoreBoundingBox(param->constraints, stopContacts[i], 3);
       }
       for (int i=0; i<nextContacts.size(); i++) {
         std::shared_ptr<ik_constraint2::PositionConstraint> constraint = std::make_shared<ik_constraint2::PositionConstraint>();
@@ -80,6 +81,7 @@ namespace wholebodycontact_locomotion_planner{
         constraint->B_link() = nextContacts[i]->link2;
         constraint->B_localpos() = nextContacts[i]->localPose2;
         if (!attach) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.05); // 0.05だけ離す
+        if (attach) calcIgnoreBoundingBox(param->constraints, nextContacts[i], 3);
         constraint->eval_link() = nullptr;
         constraint->eval_localR() = nextContacts[i]->localPose2.rotation();
         constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 0.01;
@@ -172,6 +174,7 @@ namespace wholebodycontact_locomotion_planner{
     // }
     for (int i=0; i<param->constraints.size(); i++) {
       if (typeid(*(param->constraints[i]))==typeid(ik_constraint2_distance_field::DistanceFieldCollisionConstraint)) {
+        std::static_pointer_cast<ik_constraint2_distance_field::DistanceFieldCollisionConstraint>(param->constraints[i])->ignoreBoundingBox().clear();
         for (int j=0; j<nextContacts.size();j++) {
           if (nextContacts[j]->name == std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->A_link()->name()) {
             std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->tolerance() = defaultTolerance;
@@ -184,6 +187,37 @@ namespace wholebodycontact_locomotion_planner{
     return solved;
   }
 
+  void calcIgnoreBoundingBox(const std::vector<std::shared_ptr<ik_constraint2::IKConstraint> >& constraints,
+                             const std::shared_ptr<Contact>& contact,
+                             int level
+                             ) { // constraint中のcollisionConstraintについて、contactのlink1のlevel等親のリンクの干渉回避である場合、contactのlink1のBoundingBoxを追加する.
+    std::vector<cnoid::LinkPtr> targetLinks;
+    targetLinks.push_back(contact->link1);
+    for (int iter=0; iter<level; iter++) {
+      int prevLevelSize = targetLinks.size();
+      for (int i=0; i<prevLevelSize; i++) {
+        if ((targetLinks[i]->parent() != nullptr) && (std::find(targetLinks.begin(), targetLinks.end(), targetLinks[i]->parent()) == targetLinks.end())) targetLinks.push_back(targetLinks[i]->parent());
+        cnoid::LinkPtr child = targetLinks[i]->child();
+        while (child != nullptr) {
+          if (std::find(targetLinks.begin(), targetLinks.end(), child) == targetLinks.end()) targetLinks.push_back(child);
+          child = child->sibling();
+        }
+      }
+    }
+
+    for (int i=0; i<constraints.size(); i++) {
+      if (typeid(*(constraints[i]))==typeid(ik_constraint2_distance_field::DistanceFieldCollisionConstraint)) {
+        if (std::find(targetLinks.begin(), targetLinks.end(), std::static_pointer_cast<ik_constraint2::CollisionConstraint>(constraints[i])->A_link()) != targetLinks.end()) {
+          ik_constraint2_distance_field::DistanceFieldCollisionConstraint::BoundingBox ignoreBoundingBox;
+          ignoreBoundingBox.parentLink = contact->link1;
+          ignoreBoundingBox.localPose.translation() = contact->bbx.center();
+          ignoreBoundingBox.dimensions = contact->bbx.max() - contact->bbx.min();
+          std::static_pointer_cast<ik_constraint2_distance_field::DistanceFieldCollisionConstraint>(constraints[i])->ignoreBoundingBox().push_back(ignoreBoundingBox);
+        }
+      }
+    }
+
+  }
   bool calcContactPoint(const std::shared_ptr<WBLPParam>& param,
                         const std::vector<std::shared_ptr<Contact> >& attachContacts
                         ) { // 本来はIKの中で探索したい
@@ -224,7 +258,7 @@ namespace wholebodycontact_locomotion_planner{
     }
   }
 
-  inline cnoid::SgMeshPtr convertToSgMesh (const cnoid::SgNodePtr collisionshape){
+  cnoid::SgMeshPtr convertToSgMesh (const cnoid::SgNodePtr collisionshape){
 
     if (!collisionshape) return nullptr;
 
@@ -232,7 +266,7 @@ namespace wholebodycontact_locomotion_planner{
     cnoid::SgMeshPtr model = new cnoid::SgMesh; model->getOrCreateVertices();
     if(meshExtractor->extract(collisionshape, [&]() { addMesh(model,meshExtractor); })){
     }else{
-      std::cerr << "[convertToSgMesh] meshExtractor->extract failed " << collisionshape->name() << std::endl;
+      //      std::cerr << "[convertToSgMesh] meshExtractor->extract failed " << collisionshape->name() << std::endl;
       return nullptr;
     }
     model->setName(collisionshape->name());

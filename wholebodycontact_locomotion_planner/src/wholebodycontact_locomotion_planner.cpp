@@ -27,7 +27,6 @@ namespace wholebodycontact_locomotion_planner{
     std::vector<double> initialPose;
     global_inverse_kinematics_solver::link2Frame(param->variables, initialPose);
 
-
     std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints;
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints0;
     {
@@ -176,6 +175,7 @@ namespace wholebodycontact_locomotion_planner{
             cnoid::Vector3d x_axis = (z_axis==cnoid::Vector3d::UnitY()) ? cnoid::Vector3d::UnitZ() : cnoid::Vector3d::UnitY().cross(z_axis);
             cnoid::Vector3d y_axis = z_axis.cross(x_axis);
             contact->localPose2.linear().col(0) = x_axis.normalized(); contact->localPose2.linear().col(1) = y_axis.normalized(); contact->localPose2.linear().col(2) = z_axis.normalized();
+            contact->calcBoundingBox();
             Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6); // TODO 干渉形状から出す？
             C.insert(0,2) = 1.0;
             C.insert(1,0) = 1.0; C.insert(1,2) = 0.2;
@@ -211,6 +211,11 @@ namespace wholebodycontact_locomotion_planner{
                  ) {
     if (param->debugLevel >= 2) {
       std::cerr << "[solveWBLP] start. guide path size : " << guidePath.size() << std::endl;
+    }
+
+    // bbxを計算
+    for (int i=0; i<param->currentContactPoints.size(); i++) {
+      param->currentContactPoints[i]->calcBoundingBox();
     }
     outputPath.clear();
     int pathId=0;
