@@ -500,7 +500,7 @@ namespace wholebodycontact_locomotion_planner{
     cnoid::YAMLReader reader;
     cnoid::MappingPtr node;
     std::string prevLinkName = "";
-    std::vector<wholebodycontact_locomotion_planner::ContactPoint> contactPoints;
+    std::vector<cnoid::Isometry3> contactPoints;
     try {
       node = reader.loadDocument(contactFileName)->toMapping();
     } catch(const cnoid::ValueNode::Exception& ex) {
@@ -534,13 +534,13 @@ namespace wholebodycontact_locomotion_planner{
             prevLinkName = linkName;
             contactPoints.clear();
           }
-          wholebodycontact_locomotion_planner::ContactPoint sensor;
+          cnoid::Isometry3 sensor;
           // translation
           cnoid::ValueNodePtr translation_ = info->extract("translation");
           if(translation_){
             cnoid::ListingPtr translationTmp = translation_->toListing();
             if(translationTmp->size()==3){
-              sensor.translation = cnoid::Vector3(translationTmp->at(0)->toDouble(), translationTmp->at(1)->toDouble(), translationTmp->at(2)->toDouble());
+              sensor.translation() = cnoid::Vector3(translationTmp->at(0)->toDouble(), translationTmp->at(1)->toDouble(), translationTmp->at(2)->toDouble());
             }
           }
           // rotation
@@ -548,7 +548,7 @@ namespace wholebodycontact_locomotion_planner{
           if(rotation_){
             cnoid::ListingPtr rotationTmp = rotation_->toListing();
             if(rotationTmp->size() == 4){
-              sensor.rotation = cnoid::AngleAxisd(rotationTmp->at(3)->toDouble(),
+              sensor.linear() = cnoid::AngleAxisd(rotationTmp->at(3)->toDouble(),
                                                   cnoid::Vector3{rotationTmp->at(0)->toDouble(), rotationTmp->at(1)->toDouble(), rotationTmp->at(2)->toDouble()}).toRotationMatrix();
             }
           }

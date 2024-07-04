@@ -225,12 +225,12 @@ namespace wholebodycontact_locomotion_planner{
       double maxValue = -1000;
       for(int j=0;j<param->contactPoints[attachContacts[i]->name].size();j++){
         double weight = 0.1;
-        double value=weight*(attachContacts[i]->localPose2.linear()*cnoid::Vector3::UnitZ()).dot(attachContacts[i]->link1->R() * param->contactPoints[attachContacts[i]->name][j].rotation * cnoid::Vector3::UnitZ());
-        value -=(attachContacts[i]->link1->p() + attachContacts[i]->link1->R() * param->contactPoints[attachContacts[i]->name][j].translation - attachContacts[i]->localPose2.translation()).norm();
+        double value=weight*(attachContacts[i]->localPose2.linear()*cnoid::Vector3::UnitZ()).dot(attachContacts[i]->link1->R() * param->contactPoints[attachContacts[i]->name][j].rotation() * cnoid::Vector3::UnitZ());
+        value -=(attachContacts[i]->link1->p() + attachContacts[i]->link1->R() * param->contactPoints[attachContacts[i]->name][j].translation() - attachContacts[i]->localPose2.translation()).norm();
         if (value > maxValue) {
           maxValue = value;
-          attachContacts[i]->localPose1.linear() = param->contactPoints[attachContacts[i]->name][j].rotation;
-          attachContacts[i]->localPose1.translation() = param->contactPoints[attachContacts[i]->name][j].translation;
+          attachContacts[i]->localPose1.linear() = param->contactPoints[attachContacts[i]->name][j].rotation();
+          attachContacts[i]->localPose1.translation() = param->contactPoints[attachContacts[i]->name][j].translation();
         }
       }
     }

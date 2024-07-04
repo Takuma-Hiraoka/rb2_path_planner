@@ -20,7 +20,7 @@ namespace wholebodycontact_locomotion_planner{
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints;
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
     std::unordered_map<std::string, std::shared_ptr<Mode> > modes;
-    std::unordered_map<std::string, std::vector<ContactPoint> > contactPoints; // linkName, ContactPoint
+    std::unordered_map<std::string, std::vector<cnoid::Isometry3> > contactPoints; // linkName, ContactPoint
     std::vector<std::shared_ptr<Contact> > currentContactPoints;
     std::vector<std::vector<cnoid::LinkPtr> > prioritizedLinks;
     global_inverse_kinematics_solver::GIKParam gikRootParam;
