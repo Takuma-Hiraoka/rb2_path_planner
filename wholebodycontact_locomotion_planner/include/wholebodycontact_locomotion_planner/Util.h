@@ -11,7 +11,8 @@ namespace wholebodycontact_locomotion_planner{
                       const std::vector<std::shared_ptr<Contact> >& nextContacts,
                       const std::vector<std::shared_ptr<ik_constraint2::IKConstraint> >& nominals,
                       bool attach,
-                      bool slide);
+                      bool slide,
+                      bool lift=false);
   void calcIgnoreBoundingBox(const std::vector<std::shared_ptr<ik_constraint2::IKConstraint> >& constraints,
                              const std::shared_ptr<Contact>& contact,
                              int level=1

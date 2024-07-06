@@ -98,7 +98,7 @@ namespace wholebodycontact_locomotion_planner_sample{
         std::shared_ptr<wholebodycontact_locomotion_planner::Contact> lleg = std::make_shared<wholebodycontact_locomotion_planner::Contact>();
         lleg->name = "LLEG_ANKLE_R";
         lleg->link1 = param->robot->link("LLEG_ANKLE_R");
-        lleg->localPose1.translation() = cnoid::Vector3(0.0,0.0,-0.045);
+        lleg->localPose1.translation() = cnoid::Vector3(0.0,0.0,-0.055);
         lleg->localPose2.translation() = cnoid::Vector3(0.0,0.09,0.0);
         Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6);
         C.insert(0,2) = 1.0;
@@ -124,7 +124,7 @@ namespace wholebodycontact_locomotion_planner_sample{
         std::shared_ptr<wholebodycontact_locomotion_planner::Contact> rleg = std::make_shared<wholebodycontact_locomotion_planner::Contact>();
         rleg->name = "RLEG_ANKLE_R";
         rleg->link1 = param->robot->link("RLEG_ANKLE_R");
-        rleg->localPose1.translation() = cnoid::Vector3(0.0,0.0,-0.045);
+        rleg->localPose1.translation() = cnoid::Vector3(0.0,0.0,-0.055);
         rleg->localPose2.translation() = cnoid::Vector3(0.0,-0.09,0.0);
         Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6);
         C.insert(0,2) = 1.0;
@@ -205,6 +205,12 @@ namespace wholebodycontact_locomotion_planner_sample{
     }
 
     param->constraints.clear();
+    // joint limit
+    for(int i=0;i<param->robot->numJoints();i++){
+      std::shared_ptr<ik_constraint2::JointLimitConstraint> constraint = std::make_shared<ik_constraint2::JointLimitConstraint>();
+      constraint->joint() = param->robot->joint(i);
+      param->constraints.push_back(constraint);
+    }
     // environmental collision
     for (int i=0; i<param->robot->numLinks(); i++) {
       if(param->robot->link(i)->name() == "LLEG_ANKLE_P" ||
@@ -290,7 +296,30 @@ namespace wholebodycontact_locomotion_planner_sample{
     param->prioritizedLinks.push_back(prioritizedLinks2);
     param->prioritizedLinks.push_back(prioritizedLinks3);
 
+    // bodyContactConstraint
     std::string contactFileName = ros::package::getPath("wholebodycontact_locomotion_planner_sample") + "/config/sample_config.yaml";
-    wholebodycontact_locomotion_planner::createContactPoints(param, contactFileName);
+    std::unordered_map<std::string, std::vector<cnoid::Isometry3> > contactPoints = wholebodycontact_locomotion_planner::createContactPoints(param, contactFileName);
+    for (int i=0; i<param->robot->numLinks(); i++) {
+      if(std::find(contactableLinkNames.begin(),contactableLinkNames.end(),param->robot->link(i)->name()) == contactableLinkNames.end()) continue;
+      cnoid::LinkPtr variable = new cnoid::Link();
+      variable->setJointType(cnoid::Link::JointType::FreeJoint);
+      std::shared_ptr<ik_constraint2_body_contact::BodyContactConstraint> constraint = std::make_shared<ik_constraint2_body_contact::BodyContactConstraint>();
+      constraint->A_link() = param->robot->link(i);
+      constraint->B_link() = nullptr;
+      constraint->contact_pos_link() = variable;
+      constraint->contact_pos_link()->T() = constraint->A_localpos();
+      for(std::unordered_map<std::string, std::vector<cnoid::Isometry3> >::const_iterator it=contactPoints.begin(); it!=contactPoints.end(); it++){
+        if (it->first==param->robot->link(i)->name()) constraint->setContactPoints(it->second, 0.05, 16);
+      }
+      constraint->contactSearchLimit() = 0.04;
+      constraint->precision() = 0.02;
+      constraint->contactWeight() = 2;
+      constraint->normalGradientDistance() = 0.05;
+      constraint->weight() << 1.0, 1.0, 1.0, 0.01, 0.01, 0.01; // rollやpitchを正確にすると、足裏の端で接触点探索の結果足の甲にいったときに、ほぼ最短接触点であるために接触点は変化せず、無理につま先立ちしようとしてIKがとけない、ということになる.
+      constraint->debugLevel() = 0;
+      constraint->updateBounds();
+
+      param->bodyContactConstraints.push_back(constraint);
+    }
   }
 }

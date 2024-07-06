@@ -8,7 +8,12 @@ namespace wholebodycontact_locomotion_planner{
                       const std::vector<std::shared_ptr<Contact> >& nextContacts,
                       const std::vector<std::shared_ptr<ik_constraint2::IKConstraint> >& nominals,
                       bool attach,
-                      bool slide) {
+                      bool slide,
+                      bool lift) {
+    std::vector<cnoid::LinkPtr> variables;
+    for (int i=0;i<param->variables.size(); i++) {
+      variables.push_back(param->variables[i]);
+    }
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints0;
     double defaultTolerance = 0.06;
     double defaultPrecision = 0.05;
@@ -43,6 +48,7 @@ namespace wholebodycontact_locomotion_planner{
     std::vector<cnoid::VectorX> dls;
     std::vector<cnoid::VectorX> dus;
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints1;
+    std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints2;
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > goals;
     {
       for (int i=0; i<stopContacts.size(); i++) {
@@ -68,51 +74,72 @@ namespace wholebodycontact_locomotion_planner{
         calcIgnoreBoundingBox(param->constraints, stopContacts[i], 3);
       }
       for (int i=0; i<nextContacts.size(); i++) {
-        std::shared_ptr<ik_constraint2::PositionConstraint> constraint = std::make_shared<ik_constraint2::PositionConstraint>();
-        constraint->A_link() = nextContacts[i]->link1;
-        constraint->A_localpos() = nextContacts[i]->localPose1;
-        if (!attach || slide) { // 接触ローカル位置は変えない
-          for (int j=0; j<stopContacts.size(); j++) {
-            if (nextContacts[i]->name == stopContacts[j]->name) {
-              constraint->A_localpos() = stopContacts[j]->localPose1;
+        if (!attach && !lift) { // 現在接触している状態から外すときに接触点も探索に含めてしまうと、リンクの裏側に接触点が移動してしまう
+          for (int j=0; j<param->bodyContactConstraints.size(); j++) {
+            if (nextContacts[i]->name == param->bodyContactConstraints[j]->A_link()->name()) {
+              std::shared_ptr<ik_constraint2_body_contact::BodyContactConstraint> constraint = param->bodyContactConstraints[j];
+              constraint->A_link() = nextContacts[i]->link1;
+              constraint->A_localpos() = nextContacts[i]->localPose1;
+              for (int stop=0; stop<stopContacts.size(); stop++) {
+                if (stopContacts[stop]->name == nextContacts[i]->name) constraint->A_localpos() = stopContacts[stop]->localPose1;
+              }
+              constraint->B_link() = nextContacts[i]->link2;
+              constraint->B_localpos() = nextContacts[i]->localPose2;
+              constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.05); // 0.05だけ離す
+              constraint->eval_localR() = constraint->B_localpos().linear();
+              constraint->contact_pos_link()->T() = constraint->A_localpos();
+              if (param->useSwingGIK) {goals.push_back(constraint); // 浮いている時はGIKをつかう
+              } else {constraints2.push_back(constraint);}
+              variables.push_back(constraint->contact_pos_link());
             }
           }
-        }
-        constraint->B_link() = nextContacts[i]->link2;
-        constraint->B_localpos() = nextContacts[i]->localPose2;
-        if (!attach) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.05); // 0.05だけ離す
-        if (attach) calcIgnoreBoundingBox(param->constraints, nextContacts[i], 3);
-        constraint->eval_link() = nullptr;
-        constraint->eval_localR() = nextContacts[i]->localPose2.rotation();
-        constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 0.01;
-        if (!attach && param->useSwingGIK) {goals.push_back(constraint); // 浮いている時はGIKをつかう
-        }else{constraints1.push_back(constraint);}
-        if (slide) {
-          for (int j=0; j<stopContacts.size(); j++) {
-            if (nextContacts[i]->name == stopContacts[j]->name) {
-              constraint->weight()[5] = 1.0; // 摩擦制約の関係上一致させる必要がある
-              poses.push_back(nextContacts[i]->localPose2);
-              cnoid::Vector3 diff = (stopContacts[j]->link1->T() * stopContacts[j]->localPose1).rotation().transpose() * (nextContacts[i]->localPose2.translation() - stopContacts[j]->localPose2.translation());
-              cnoid::Matrix3 diffR = ((stopContacts[j]->link1->T() * stopContacts[j]->localPose1).rotation().transpose() * (nextContacts[i]->link1->T() * nextContacts[i]->localPose1).rotation());
-              Eigen::SparseMatrix<double,Eigen::RowMajor> A(3,6);
-              A.insert(0,0) = diff[0] > 0 ? -1.0 : 1.0; A.insert(0,2) = 0.2;
-              A.insert(1,1) = diff[1] > 0 ? -1.0 : 1.0; A.insert(1,2) = 0.2;
-              A.insert(2,5) = cnoid::rpyFromRot(diffR)[2] > 0 ? -1.0 : 1.0; A.insert(2,2) = 0.005;
-              As.push_back(A);
-              cnoid::VectorX b = Eigen::VectorXd::Zero(3);
-              bs.push_back(b);
-              Eigen::SparseMatrix<double,Eigen::RowMajor> C(5,6); // TODO 干渉形状から出す？
-              C.insert(0,2) = 1.0;
-              C.insert(1,2) = 0.05; C.insert(1,3) = 1.0;
-              C.insert(2,2) = 0.05; C.insert(2,3) = -1.0;
-              C.insert(3,2) = 0.05; C.insert(3,4) = 1.0;
-              C.insert(4,2) = 0.05; C.insert(4,4) = -1.0;
-              Cs.push_back(C);
-              cnoid::VectorX dl = Eigen::VectorXd::Zero(5);
-              dls.push_back(dl);
-              cnoid::VectorX du = 1e10 * Eigen::VectorXd::Ones(5);
-              du[0] = 2000.0;
-              dus.push_back(du);
+        } else { // (slide && attach && !lift) (!slide && attach && !lift) (!slide && !attach && lift) (!slide && attach && lift)
+          std::shared_ptr<ik_constraint2::PositionConstraint> constraint = std::make_shared<ik_constraint2::PositionConstraint>();
+          constraint->A_link() = nextContacts[i]->link1;
+          constraint->A_localpos() = nextContacts[i]->localPose1; // liftし終わって、あたらしい接触ローカル座標系が探索されている場合
+          // 接触ローカル位置は変えない. slideしたか、liftした場合
+          if (slide || lift) {
+            for (int j=0; j<stopContacts.size(); j++) {
+              if (nextContacts[i]->name == stopContacts[j]->name) {
+                constraint->A_localpos() = stopContacts[j]->localPose1;
+              }
+            }
+          }
+          constraint->B_link() = nextContacts[i]->link2;
+          constraint->B_localpos() = nextContacts[i]->localPose2;
+          if (lift) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.05);
+          if (!lift) calcIgnoreBoundingBox(param->constraints, nextContacts[i], 3);
+          constraint->eval_link() = nullptr;
+          constraint->eval_localR() = nextContacts[i]->localPose2.rotation();
+          constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 0.01;
+          constraints2.push_back(constraint);
+          if (slide) {
+            for (int j=0; j<stopContacts.size(); j++) {
+              if (nextContacts[i]->name == stopContacts[j]->name) {
+                constraint->weight()[5] = 1.0; // 摩擦制約の関係上一致させる必要がある
+                poses.push_back(nextContacts[i]->localPose2);
+                cnoid::Vector3 diff = (stopContacts[j]->link1->T() * stopContacts[j]->localPose1).rotation().transpose() * (nextContacts[i]->localPose2.translation() - stopContacts[j]->localPose2.translation());
+                cnoid::Matrix3 diffR = ((stopContacts[j]->link1->T() * stopContacts[j]->localPose1).rotation().transpose() * (nextContacts[i]->link1->T() * nextContacts[i]->localPose1).rotation());
+                Eigen::SparseMatrix<double,Eigen::RowMajor> A(3,6);
+                A.insert(0,0) = diff[0] > 0 ? -1.0 : 1.0; A.insert(0,2) = 0.2;
+                A.insert(1,1) = diff[1] > 0 ? -1.0 : 1.0; A.insert(1,2) = 0.2;
+                A.insert(2,5) = cnoid::rpyFromRot(diffR)[2] > 0 ? -1.0 : 1.0; A.insert(2,2) = 0.005;
+                As.push_back(A);
+                cnoid::VectorX b = Eigen::VectorXd::Zero(3);
+                bs.push_back(b);
+                Eigen::SparseMatrix<double,Eigen::RowMajor> C(5,6); // TODO 干渉形状から出す？
+                C.insert(0,2) = 1.0;
+                C.insert(1,2) = 0.05; C.insert(1,3) = 1.0;
+                C.insert(2,2) = 0.05; C.insert(2,3) = -1.0;
+                C.insert(3,2) = 0.05; C.insert(3,4) = 1.0;
+                C.insert(4,2) = 0.05; C.insert(4,4) = -1.0;
+                Cs.push_back(C);
+                cnoid::VectorX dl = Eigen::VectorXd::Zero(5);
+                dls.push_back(dl);
+                cnoid::VectorX du = 1e10 * Eigen::VectorXd::Ones(5);
+                du[0] = 2000.0;
+                dus.push_back(du);
+              }
             }
           }
         }
@@ -128,22 +155,23 @@ namespace wholebodycontact_locomotion_planner{
 
     bool solved;
     if (attach || !param->useSwingGIK) {
-      std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0, constraints1, nominals};
+      std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0, constraints1, constraints2, nominals};
       prioritized_inverse_kinematics_solver2::IKParam pikParam;
       pikParam.checkFinalState=true;
       pikParam.calcVelocity = false;
       pikParam.debugLevel = 0;
       pikParam.we = 1e2;
-      pikParam.we = 1e1;
+      pikParam.wmax = 1e1;
+      pikParam.convergeThre = 5e-3;
       pikParam.maxIteration = 100;
       std::vector<std::shared_ptr<prioritized_qp_base::Task> > prevTasks;
-      solved  =  prioritized_inverse_kinematics_solver2::solveIKLoop(param->variables,
+      solved  =  prioritized_inverse_kinematics_solver2::solveIKLoop(variables,
                                                                      constraints,
                                                                      prevTasks,
                                                                      pikParam
                                                                      );
     } else {
-      std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0, constraints1};
+      std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0, constraints1, constraints2};
       param->gikParam.projectLink.resize(1);
       param->gikParam.projectLink[0] = nextContacts[0]->link1;
       param->gikParam.projectLocalPose = nextContacts[0]->localPose1;
@@ -154,7 +182,7 @@ namespace wholebodycontact_locomotion_planner{
           param->variables[i]->q() = std::max(std::min(param->variables[i]->q(),param->variables[i]->q_upper()),param->variables[i]->q_lower());
         }
       }
-      solved = global_inverse_kinematics_solver::solveGIK(param->variables,
+      solved = global_inverse_kinematics_solver::solveGIK(variables,
                                                           constraints,
                                                           goals,
                                                           nominals,
@@ -169,6 +197,11 @@ namespace wholebodycontact_locomotion_planner{
     //   constraints1[i]->updateBounds();
     //   std::cerr << "constraints1: "<< constraints1[i]->isSatisfied() << std::endl;
     // }
+    // for ( int i=0; i<constraints2.size(); i++ ) {
+    //   constraints2[i]->debugLevel() = 2;
+    //   constraints2[i]->updateBounds();
+    //   std::cerr << "constraints2: "<< constraints2[i]->isSatisfied() << std::endl;
+    // }
     // for ( int i=0; i<nominals.size(); i++ ) {
     //   std::cerr << "nominals: "<< nominals[i]->isSatisfied() << std::endl;
     // }
@@ -179,6 +212,20 @@ namespace wholebodycontact_locomotion_planner{
           if (nextContacts[j]->name == std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->A_link()->name()) {
             std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->tolerance() = defaultTolerance;
             std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->precision() = defaultPrecision;
+          }
+        }
+      }
+    }
+    if (!attach && !lift && solved) {
+      for (int i=0; i<nextContacts.size(); i++) {
+        for (int j=0; j<param->bodyContactConstraints.size(); j++) {
+          if (nextContacts[i]->name == param->bodyContactConstraints[j]->A_link()->name()) {
+            // そのままparam->bodyContactConstraints[j]->A_localpos();を代入すると、接触点探索の結果角を超えて姿勢が大きく変わったときもその姿勢がnextContactとなり、currentContactに代入されて次の不動接触目標とされてしまう.
+            // 次の不動接触目標とされても良いように、現在の環境の姿勢と合わせておく
+            cnoid::Isometry3 A_Tinv;
+            A_Tinv.translation() = - param->bodyContactConstraints[j]->A_link()->p();
+            A_Tinv.linear() = param->bodyContactConstraints[j]->A_link()->R().transpose();
+            nextContacts[i]->localPose1 = A_Tinv * param->bodyContactConstraints[j]->B_localpos();
           }
         }
       }
@@ -217,23 +264,6 @@ namespace wholebodycontact_locomotion_planner{
       }
     }
 
-  }
-  bool calcContactPoint(const std::shared_ptr<WBLPParam>& param,
-                        const std::vector<std::shared_ptr<Contact> >& attachContacts
-                        ) { // 本来はIKの中で探索したい
-    for (int i=0;i<attachContacts.size();i++) {
-      double maxValue = -1000;
-      for(int j=0;j<param->contactPoints[attachContacts[i]->name].size();j++){
-        double weight = 0.1;
-        double value=weight*(attachContacts[i]->localPose2.linear()*cnoid::Vector3::UnitZ()).dot(attachContacts[i]->link1->R() * param->contactPoints[attachContacts[i]->name][j].rotation() * cnoid::Vector3::UnitZ());
-        value -=(attachContacts[i]->link1->p() + attachContacts[i]->link1->R() * param->contactPoints[attachContacts[i]->name][j].translation() - attachContacts[i]->localPose2.translation()).norm();
-        if (value > maxValue) {
-          maxValue = value;
-          attachContacts[i]->localPose1.linear() = param->contactPoints[attachContacts[i]->name][j].rotation();
-          attachContacts[i]->localPose1.translation() = param->contactPoints[attachContacts[i]->name][j].translation();
-        }
-      }
-    }
   }
   inline void addMesh(cnoid::SgMeshPtr model, std::shared_ptr<cnoid::MeshExtractor> meshExtractor){
     cnoid::SgMeshPtr mesh = meshExtractor->currentMesh();

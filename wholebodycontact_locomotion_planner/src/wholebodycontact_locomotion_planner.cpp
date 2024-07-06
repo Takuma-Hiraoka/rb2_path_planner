@@ -284,10 +284,9 @@ namespace wholebodycontact_locomotion_planner{
           std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
           frame2Nominals(guidePath[idx].first, param->variables, nominals);
           std::vector<double> frame;
-          if (!solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, nominals, false, false)) break;
+          if (!solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, nominals, false, false, idx==pathId ? true:false)) break;
           global_inverse_kinematics_solver::link2Frame(param->variables, frame);
-          calcContactPoint(param, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]});
-          if (solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, nominals, true, false)) { // 着地も可能
+          if (solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, nominals, true, false, idx==pathId ? true:false)) { // 着地も可能
             path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > >(frame, currentContact)); // TODO currentContactからmoveContactを除くこと
             global_inverse_kinematics_solver::link2Frame(param->variables, lastLandingFrame);
             global_inverse_kinematics_solver::frame2Link(frame, param->variables);
@@ -420,7 +419,7 @@ namespace wholebodycontact_locomotion_planner{
           {
             std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
             frame2Nominals(guidePath[nextId].first, param->variables, nominals);
-            if(!solveContactIK(param, currentContact, detachContact, nominals, false, false)) {
+            if(!solveContactIK(param, currentContact, detachContact, nominals, false, false, true)) {
               std::cerr << "cannot detach contact" << std::endl;
               break;
             }
@@ -443,20 +442,8 @@ namespace wholebodycontact_locomotion_planner{
               param->viewer->drawObjects();
             }
           }
-          // 追加する接触のリンク座標を決める.
           {
-            std::vector<double> preContactPose;
-            global_inverse_kinematics_solver::link2Frame(param->variables, preContactPose);
-
-            global_inverse_kinematics_solver::frame2Link(guidePath[nextId].first,param->variables);
-            param->robot->calcForwardKinematics(false);
-            param->robot->calcCenterOfMass();
-            calcContactPoint(param, attachContact);
-
             // 接触を追加する
-            global_inverse_kinematics_solver::frame2Link(preContactPose, param->variables);
-            param->robot->calcForwardKinematics(false);
-            param->robot->calcCenterOfMass();
             std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
             frame2Nominals(guidePath[nextId].first, param->variables, nominals);
             if(!solveContactIK(param, currentContact, attachContact, nominals, false, false)) {
@@ -493,14 +480,14 @@ namespace wholebodycontact_locomotion_planner{
     }
     return true;
   }
-  void createContactPoints(const std::shared_ptr<WBLPParam>& param,
-                           std::string contactFileName
-                           ) {
-    param->contactPoints.clear();
+  std::unordered_map<std::string, std::vector<cnoid::Isometry3> >  createContactPoints(const std::shared_ptr<WBLPParam>& param,
+                                                                                       std::string contactFileName
+                                                                                       ) {
     cnoid::YAMLReader reader;
     cnoid::MappingPtr node;
     std::string prevLinkName = "";
-    std::vector<cnoid::Isometry3> contactPoints;
+    std::unordered_map<std::string, std::vector<cnoid::Isometry3> > contactPoints;
+    std::vector<cnoid::Isometry3> contactPointsBuf;
     try {
       node = reader.loadDocument(contactFileName)->toMapping();
     } catch(const cnoid::ValueNode::Exception& ex) {
@@ -529,10 +516,10 @@ namespace wholebodycontact_locomotion_planner{
           }
           if (linkName != prevLinkName) {
             if (prevLinkName != "") {
-              param->contactPoints[prevLinkName] = contactPoints;
+              contactPoints[prevLinkName] = contactPointsBuf;
             }
             prevLinkName = linkName;
-            contactPoints.clear();
+            contactPointsBuf.clear();
           }
           cnoid::Isometry3 sensor;
           // translation
@@ -552,12 +539,13 @@ namespace wholebodycontact_locomotion_planner{
                                                   cnoid::Vector3{rotationTmp->at(0)->toDouble(), rotationTmp->at(1)->toDouble(), rotationTmp->at(2)->toDouble()}).toRotationMatrix();
             }
           }
-          contactPoints.push_back(sensor);
+          contactPointsBuf.push_back(sensor);
         }
         if (prevLinkName != "") {
-          param->contactPoints[prevLinkName] = contactPoints;
+          contactPoints[prevLinkName] = contactPointsBuf;
         }
       }
     }
+    return contactPoints;
   }
 }

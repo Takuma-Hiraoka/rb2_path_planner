@@ -21,5 +21,6 @@
   <depend>prioritized_inverse_kinematics_solver2</depend>
   <depend>ik_constraint2_scfr</depend>
   <depend>trajectory_optimizer</depend>
+  <depend>ik_constraint2_body_contact</depend>
 
 </package>

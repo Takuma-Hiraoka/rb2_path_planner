@@ -3,6 +3,7 @@
 
 #include <choreonoid_viewer/choreonoid_viewer.h>
 #include <wholebodycontact_locomotion_planner/RobotState.h>
+#include <ik_constraint2_body_contact/BodyContactConstraint.h>
 #include <global_inverse_kinematics_solver/global_inverse_kinematics_solver.h>
 #include <prioritized_inverse_kinematics_solver2/prioritized_inverse_kinematics_solver2.h>
 #include <trajectory_optimizer/trajectory_optimizer.h>
@@ -20,8 +21,8 @@ namespace wholebodycontact_locomotion_planner{
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints;
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
     std::unordered_map<std::string, std::shared_ptr<Mode> > modes;
-    std::unordered_map<std::string, std::vector<cnoid::Isometry3> > contactPoints; // linkName, ContactPoint
     std::vector<std::shared_ptr<Contact> > currentContactPoints;
+    std::vector<std::shared_ptr<ik_constraint2_body_contact::BodyContactConstraint> > bodyContactConstraints;
     std::vector<std::vector<cnoid::LinkPtr> > prioritizedLinks;
     global_inverse_kinematics_solver::GIKParam gikRootParam;
     global_inverse_kinematics_solver::GIKParam gikParam;
@@ -67,9 +68,8 @@ namespace wholebodycontact_locomotion_planner{
                  const std::vector<std::pair<std::vector<double>,std::vector<std::shared_ptr<Contact> > > >& guidePath,
                  std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > >& outputPath // angle, contact
                  );
-  void createContactPoints(const std::shared_ptr<WBLPParam>& param,
-                           std::string contactFileName
-                           );
+  std::unordered_map<std::string, std::vector<cnoid::Isometry3> >  createContactPoints(const std::shared_ptr<WBLPParam>& param,
+                                                                                       std::string contactFileName);
 }
 
 #endif
