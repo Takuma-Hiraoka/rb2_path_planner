@@ -14,6 +14,13 @@ namespace wholebodycontact_locomotion_planner {
     //    scfrConstraint->debugLevel() = 2;
     scfrConstraint->maxCError() = 0.1;
     keepScfrConstraint->scfrConstraint() = scfrConstraint;
+    // reachabilityConstraintのうち、隣接リンクの凸法に含まれる点は接触不可能とする. 足裏が地面に触れるときに脛も触れるとされては困るため. こうすると逆にリンク間の接合点(例:肘)で接触ができなくなる
+    for (int i=0; i<robot->numLinks(); i++) {
+      std::shared_ptr<Contact> contact = std::make_shared<Contact>();
+      contact->link1 = robot->link(i);
+      contact->calcBoundingBox();
+      calcIgnoreBoundingBox(this->reachabilityConstraints, contact, 3);
+    }
     for(int i=0;i<this->reachabilityConstraints.size();i++){
       keepScfrConstraint->keepCollisionConstraints().push_back(this->reachabilityConstraints[i]);
     }

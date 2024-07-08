@@ -30,8 +30,8 @@ namespace wholebodycontact_locomotion_planner{
             } else {
               defaultTolerance = std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->tolerance();
               defaultPrecision = std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->precision();
-              std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->tolerance() = 0.02;
-              std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->precision() = 0.01;
+              std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->tolerance() = 0.05;
+              std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->precision() = 0.04;
             }
           }
         }
@@ -107,8 +107,8 @@ namespace wholebodycontact_locomotion_planner{
           }
           constraint->B_link() = nextContacts[i]->link2;
           constraint->B_localpos() = nextContacts[i]->localPose2;
-          if (lift) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.05);
-          if (!lift) calcIgnoreBoundingBox(param->constraints, nextContacts[i], 3);
+          if (!attach && lift) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.05);
+          if (slide || attach) calcIgnoreBoundingBox(param->constraints, nextContacts[i], 3);
           constraint->eval_link() = nullptr;
           constraint->eval_localR() = nextContacts[i]->localPose2.rotation();
           constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 0.01;
@@ -222,10 +222,9 @@ namespace wholebodycontact_locomotion_planner{
           if (nextContacts[i]->name == param->bodyContactConstraints[j]->A_link()->name()) {
             // そのままparam->bodyContactConstraints[j]->A_localpos();を代入すると、接触点探索の結果角を超えて姿勢が大きく変わったときもその姿勢がnextContactとなり、currentContactに代入されて次の不動接触目標とされてしまう.
             // 次の不動接触目標とされても良いように、現在の環境の姿勢と合わせておく
-            cnoid::Isometry3 A_Tinv;
-            A_Tinv.translation() = - param->bodyContactConstraints[j]->A_link()->p();
-            A_Tinv.linear() = param->bodyContactConstraints[j]->A_link()->R().transpose();
-            nextContacts[i]->localPose1 = A_Tinv * param->bodyContactConstraints[j]->B_localpos();
+            // 位置については、detachした位置にしないとbody_contact_constraintが近傍として扱ってくれない可能性がある
+            nextContacts[i]->localPose1.translation() = param->bodyContactConstraints[j]->A_localpos().translation();
+            nextContacts[i]->localPose1.linear() = param->bodyContactConstraints[j]->A_link()->R().transpose() * param->bodyContactConstraints[j]->B_localpos().linear();
           }
         }
       }
@@ -265,6 +264,36 @@ namespace wholebodycontact_locomotion_planner{
     }
 
   }
+
+  void calcIgnoreBoundingBox(const std::vector<std::shared_ptr<ik_constraint2_distance_field::DistanceFieldCollisionConstraint> >& constraints,
+                             const std::shared_ptr<Contact>& contact,
+                             int level
+                             ) { // constraint中のcollisionConstraintについて、contactのlink1のlevel等親のリンクの干渉回避である場合、contactのlink1のBoundingBoxを追加する.
+    std::vector<cnoid::LinkPtr> targetLinks;
+    targetLinks.push_back(contact->link1);
+    for (int iter=0; iter<level; iter++) {
+      int prevLevelSize = targetLinks.size();
+      for (int i=0; i<prevLevelSize; i++) {
+        if ((targetLinks[i]->parent() != nullptr) && (std::find(targetLinks.begin(), targetLinks.end(), targetLinks[i]->parent()) == targetLinks.end())) targetLinks.push_back(targetLinks[i]->parent());
+        cnoid::LinkPtr child = targetLinks[i]->child();
+        while (child != nullptr) {
+          if (std::find(targetLinks.begin(), targetLinks.end(), child) == targetLinks.end()) targetLinks.push_back(child);
+          child = child->sibling();
+        }
+      }
+    }
+
+    for (int i=0; i<constraints.size(); i++) {
+      if (std::find(targetLinks.begin(), targetLinks.end(), constraints[i]->A_link()) != targetLinks.end()) {
+        ik_constraint2_distance_field::DistanceFieldCollisionConstraint::BoundingBox ignoreBoundingBox;
+        ignoreBoundingBox.parentLink = contact->link1;
+        ignoreBoundingBox.localPose.translation() = contact->bbx.center();
+        ignoreBoundingBox.dimensions = contact->bbx.max() - contact->bbx.min();
+        constraints[i]->ignoreBoundingBox().push_back(ignoreBoundingBox);
+      }
+    }
+  }
+
   inline void addMesh(cnoid::SgMeshPtr model, std::shared_ptr<cnoid::MeshExtractor> meshExtractor){
     cnoid::SgMeshPtr mesh = meshExtractor->currentMesh();
     const cnoid::Affine3& T = meshExtractor->currentTransform();

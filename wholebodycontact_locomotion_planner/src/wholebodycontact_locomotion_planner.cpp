@@ -168,7 +168,7 @@ namespace wholebodycontact_locomotion_planner{
             std::shared_ptr<Contact> contact = std::make_shared<Contact>();
             contact->name = it->second->reachabilityConstraints[j]->A_link()->name();
             contact->link1 = it->second->reachabilityConstraints[j]->A_link();
-            contact->localPose1 = cnoid::Isometry3::Identity(); // 前後のstateの接触位置は基本的に同じであるためWBLP時に決定する
+            contact->localPose1.translation() =  it->second->reachabilityConstraints[j]->A_link()->R().transpose() * (it->second->reachabilityConstraints[j]->B_currentLocalp() - it->second->reachabilityConstraints[j]->A_link()->p()); // WBLP時に接触点を決定する際に初期解として使えるように、最近傍点をいれておく
             contact->link2 = nullptr;
             contact->localPose2.translation() = it->second->reachabilityConstraints[j]->B_currentLocalp();
             cnoid::Vector3d z_axis = it->second->reachabilityConstraints[j]->currentDirection();
@@ -442,6 +442,7 @@ namespace wholebodycontact_locomotion_planner{
               param->viewer->drawObjects();
             }
           }
+
           {
             // 接触を追加する
             std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
