@@ -6,13 +6,19 @@
 #include <prioritized_inverse_kinematics_solver2/prioritized_inverse_kinematics_solver2.h>
 
 namespace wholebodycontact_locomotion_planner{
+  enum class IKState
+    {
+      DETACH, // ついている接触を離す, 接触ローカル位置は前回ついていた場所
+      ATTACH_FIXED, // 離れている接触をつける, 接触ローカル位置は前回ついていた場所
+      ATTACH, // 離れている接触をつける, 接触ローカル位置は探索された場所
+      SWING, // 離れている接触を離れたまま移動する, 接触ローカル位置を探索する
+      SLIDE, // ついている接触をついたまま移動する, 接触ローカル位置は前回ついていた場所
+    };
   bool solveContactIK(const std::shared_ptr<WBLPParam>& param,
                       const std::vector<std::shared_ptr<Contact> >& stopContact,
                       const std::vector<std::shared_ptr<Contact> >& nextContacts,
                       const std::vector<std::shared_ptr<ik_constraint2::IKConstraint> >& nominals,
-                      bool attach,
-                      bool slide,
-                      bool lift=false);
+                      const IKState ikState);
   void calcIgnoreBoundingBox(const std::vector<std::shared_ptr<ik_constraint2::IKConstraint> >& constraints,
                              const std::shared_ptr<Contact>& contact,
                              int level=1

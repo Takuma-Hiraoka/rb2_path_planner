@@ -168,7 +168,7 @@ namespace wholebodycontact_locomotion_planner{
             std::shared_ptr<Contact> contact = std::make_shared<Contact>();
             contact->name = it->second->reachabilityConstraints[j]->A_link()->name();
             contact->link1 = it->second->reachabilityConstraints[j]->A_link();
-            contact->localPose1.translation() =  it->second->reachabilityConstraints[j]->A_link()->R().transpose() * (it->second->reachabilityConstraints[j]->B_currentLocalp() - it->second->reachabilityConstraints[j]->A_link()->p()); // WBLP時に接触点を決定する際に初期解として使えるように、最近傍点をいれておく
+            contact->localPose1.translation() =  it->second->reachabilityConstraints[j]->A_currentLocalp(); // WBLP時に接触点を決定する際に初期解として使えるように、最近傍点をいれておく
             contact->link2 = nullptr;
             contact->localPose2.translation() = it->second->reachabilityConstraints[j]->B_currentLocalp();
             cnoid::Vector3d z_axis = it->second->reachabilityConstraints[j]->currentDirection();
@@ -284,9 +284,9 @@ namespace wholebodycontact_locomotion_planner{
           std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
           frame2Nominals(guidePath[idx].first, param->variables, nominals);
           std::vector<double> frame;
-          if (!solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, nominals, false, false, idx==pathId ? true:false)) break;
+          if (!solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, nominals, idx==pathId ? IKState::DETACH : IKState::SWING)) break;
           global_inverse_kinematics_solver::link2Frame(param->variables, frame);
-          if (solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, nominals, true, false, idx==pathId ? true:false)) { // 着地も可能
+          if (solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, nominals, idx==pathId ? IKState::ATTACH_FIXED : IKState::ATTACH)) { // 着地も可能
             path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > >(frame, currentContact)); // TODO currentContactからmoveContactを除くこと
             global_inverse_kinematics_solver::link2Frame(param->variables, lastLandingFrame);
             global_inverse_kinematics_solver::frame2Link(frame, param->variables);
@@ -330,7 +330,7 @@ namespace wholebodycontact_locomotion_planner{
                 guidePath[idx].second[moveContactPathId]->localPose1 = currentContact[i]->localPose1;
               }
             }
-            if (!solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, nominals, true, true)) break;
+            if (!solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, nominals, IKState::SLIDE)) break;
 
             if(param->debugLevel >= 3){
               if(param->viewer){
@@ -419,7 +419,7 @@ namespace wholebodycontact_locomotion_planner{
           {
             std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
             frame2Nominals(guidePath[nextId].first, param->variables, nominals);
-            if(!solveContactIK(param, currentContact, detachContact, nominals, false, false, true)) {
+            if(!solveContactIK(param, currentContact, detachContact, nominals, IKState::DETACH)) {
               std::cerr << "cannot detach contact" << std::endl;
               break;
             }
@@ -447,7 +447,7 @@ namespace wholebodycontact_locomotion_planner{
             // 接触を追加する
             std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
             frame2Nominals(guidePath[nextId].first, param->variables, nominals);
-            if(!solveContactIK(param, currentContact, attachContact, nominals, false, false)) {
+            if(!solveContactIK(param, currentContact, attachContact, nominals, IKState::SWING)) {
               std::cerr << "cannot pre attach contact" << std::endl;
               break;
             }
@@ -463,7 +463,7 @@ namespace wholebodycontact_locomotion_planner{
                 param->viewer->drawObjects();
               }
             }
-            if(!solveContactIK(param, currentContact, attachContact, nominals, true, false)) {
+            if(!solveContactIK(param, currentContact, attachContact, nominals, IKState::ATTACH)) {
               std::cerr << "cannot attach contact" << std::endl;
               break;
             }
