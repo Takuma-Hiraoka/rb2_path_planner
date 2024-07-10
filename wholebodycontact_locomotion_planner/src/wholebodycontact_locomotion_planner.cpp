@@ -284,6 +284,8 @@ namespace wholebodycontact_locomotion_planner{
           std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
           frame2Nominals(guidePath[idx].first, param->variables, nominals);
           std::vector<double> frame;
+          std::vector<cnoid::Isometry3> prevNextContactLocalPose1s;
+          prevNextContactLocalPose1s.push_back(guidePath[idx].second[moveContactPathId]->localPose1);
           if (!solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, nominals, idx==pathId ? IKState::DETACH : IKState::SWING)) break;
           global_inverse_kinematics_solver::link2Frame(param->variables, frame);
           if (solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, nominals, idx==pathId ? IKState::ATTACH_FIXED : IKState::ATTACH)) { // 着地も可能
@@ -300,6 +302,8 @@ namespace wholebodycontact_locomotion_planner{
               getchar();
             }
           } else {
+            // 探索したときに次の接触のローカル座標を変更しているのでもとに戻す
+            guidePath[idx].second[moveContactPathId]->localPose1 = prevNextContactLocalPose1s[0];
             break;
           }
         }
