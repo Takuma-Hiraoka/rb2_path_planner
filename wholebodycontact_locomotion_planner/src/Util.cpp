@@ -19,19 +19,24 @@ namespace wholebodycontact_locomotion_planner{
       if (typeid(*(param->constraints[i]))==typeid(ik_constraint2_distance_field::DistanceFieldCollisionConstraint)) {
         bool skip=false;
         for (int j=0; j<stopContacts.size() && !skip;j++) {
+          bool move=false;
+          for (int k=0; k<nextContacts.size(); k++) {
+            if (stopContacts[j]->name == nextContacts[k]->name) move=true;;
+          }
+          if (move) continue; // 動かす予定ならnextContactsの判定を使う
           if (stopContacts[j]->name == std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->A_link()->name()) skip = true;
         }
         for (int j=0; j<nextContacts.size() && !skip;j++) {
           if (nextContacts[j]->name == std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->A_link()->name()) {
             if ((ikState == IKState::ATTACH) ||
                 (ikState == IKState::ATTACH_FIXED) ||
-                (ikState == IKState::SWING)) { // 実際に触れされるときだけ、触れるリンクの干渉は無視する. slideならはじめに着いたとき、detach-attachならdetachのときに干渉を考慮した姿勢が出ているので、そこから先は干渉しないと仮定.
+                (ikState == IKState::SLIDE)) { // 実際に触れされるときだけ、触れるリンクの干渉は無視する. slideならはじめに着いたとき、detach-attachならdetachのときに干渉を考慮した姿勢が出ているので、そこから先は干渉しないと仮定.
               skip = true;
             } else {
               defaultTolerance = std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->tolerance();
               defaultPrecision = std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->precision();
-              std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->tolerance() = 0.05;
-              std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->precision() = 0.04;
+              std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->tolerance() = 0.02;
+              std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->precision() = 0.01;
             }
           }
         }
@@ -85,7 +90,7 @@ namespace wholebodycontact_locomotion_planner{
               }
               constraint->B_link() = nextContacts[i]->link2;
               constraint->B_localpos() = nextContacts[i]->localPose2;
-              constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.05); // 0.05だけ離す
+              constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.02); // 0.02だけ離す
               constraint->eval_localR() = constraint->B_localpos().linear();
               constraint->contact_pos_link()->T() = constraint->A_localpos();
               if (param->useSwingGIK) {goals.push_back(constraint); // 浮いている時はGIKをつかう
@@ -111,7 +116,7 @@ namespace wholebodycontact_locomotion_planner{
           }
           constraint->B_link() = nextContacts[i]->link2;
           constraint->B_localpos() = nextContacts[i]->localPose2;
-          if (ikState==IKState::DETACH) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.05);
+          if (ikState==IKState::DETACH) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.02);
           if ((ikState==IKState::ATTACH) ||
               (ikState==IKState::ATTACH_FIXED) ||
               (ikState==IKState::SLIDE)) calcIgnoreBoundingBox(param->constraints, nextContacts[i], 3);
@@ -165,19 +170,11 @@ namespace wholebodycontact_locomotion_planner{
         (ikState==IKState::SLIDE) ||
         !param->useSwingGIK) {
       std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0, constraints1, constraints2, nominals};
-      prioritized_inverse_kinematics_solver2::IKParam pikParam;
-      pikParam.checkFinalState=true;
-      pikParam.calcVelocity = false;
-      pikParam.debugLevel = 0;
-      pikParam.we = 1e2;
-      pikParam.wmax = 1e1;
-      pikParam.convergeThre = 5e-3;
-      pikParam.maxIteration = 100;
       std::vector<std::shared_ptr<prioritized_qp_base::Task> > prevTasks;
       solved  =  prioritized_inverse_kinematics_solver2::solveIKLoop(variables,
                                                                      constraints,
                                                                      prevTasks,
-                                                                     pikParam
+                                                                     param->pikParam
                                                                      );
     } else {
       std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0, constraints1, constraints2};

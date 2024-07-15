@@ -26,6 +26,7 @@ namespace wholebodycontact_locomotion_planner{
     std::vector<std::vector<cnoid::LinkPtr> > prioritizedLinks;
     global_inverse_kinematics_solver::GIKParam gikRootParam;
     global_inverse_kinematics_solver::GIKParam gikParam;
+    prioritized_inverse_kinematics_solver2::IKParam pikParam;
     bool OptimizeTrajectory = false; // 関節角度軌道を最適化、近いstate同士をショートカットするかどうか. もともと粗い軌道でありショートカットできる数は少なく、計算時間が増えるデメリットのほうが大きい.
     bool useSwingGIK = false; // TODO なぜか遅い
     trajectory_optimizer::TOParam toParam;
@@ -57,6 +58,13 @@ namespace wholebodycontact_locomotion_planner{
       /* gikParam.pikParam.wmax = 1e1; // 1e2程度にすると関節がめり込まなくなるが、ほとんど動かない. */
 
       toParam.shortcutThre=4e-2;
+      pikParam.checkFinalState=true;
+      pikParam.calcVelocity = false;
+      pikParam.debugLevel = 0;
+      pikParam.we = 1e2;
+      pikParam.wmax = 1e1;
+      pikParam.convergeThre = 5e-3;
+      pikParam.maxIteration = 100;
     };
   };
   bool solveCBPath(const std::shared_ptr<Environment>& environment,

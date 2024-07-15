@@ -100,6 +100,7 @@ namespace wholebodycontact_locomotion_planner_sample{
         lleg->link1 = param->robot->link("LLEG_ANKLE_R");
         lleg->localPose1.translation() = cnoid::Vector3(0.0,0.0,-0.055);
         lleg->localPose2.translation() = cnoid::Vector3(0.0,0.09,0.0);
+        if (quadruped) lleg->localPose2.translation() = cnoid::Vector3(-0.2,0.09,0.0);
         Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6);
         C.insert(0,2) = 1.0;
         C.insert(1,0) = 1.0; C.insert(1,2) = 0.2;
@@ -126,6 +127,7 @@ namespace wholebodycontact_locomotion_planner_sample{
         rleg->link1 = param->robot->link("RLEG_ANKLE_R");
         rleg->localPose1.translation() = cnoid::Vector3(0.0,0.0,-0.055);
         rleg->localPose2.translation() = cnoid::Vector3(0.0,-0.09,0.0);
+        if (quadruped) rleg->localPose2.translation() = cnoid::Vector3(-0.2,-0.09,0.0);
         Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6);
         C.insert(0,2) = 1.0;
         C.insert(1,0) = 1.0; C.insert(1,2) = 0.2;
@@ -154,6 +156,7 @@ namespace wholebodycontact_locomotion_planner_sample{
           larm->localPose1.translation() = cnoid::Vector3(-0.025,0.0,-0.195);
           larm->localPose1.linear() = cnoid::rotFromRpy(0,M_PI /2,0);
           larm->localPose2.translation() = cnoid::Vector3(0.45,0.09,0.0);
+          larm->localPose2.linear() = cnoid::rotFromRpy(0,0,-M_PI /4);
           Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6);
           C.insert(0,2) = 1.0;
           C.insert(1,0) = 1.0; C.insert(1,2) = 0.2;
@@ -181,6 +184,7 @@ namespace wholebodycontact_locomotion_planner_sample{
           rarm->localPose1.translation() = cnoid::Vector3(-0.025,0.0,-0.195);
           rarm->localPose1.linear() = cnoid::rotFromRpy(0,M_PI /2,0);
           rarm->localPose2.translation() = cnoid::Vector3(0.45,-0.09,0.0);
+          rarm->localPose2.linear() = cnoid::rotFromRpy(0,0,M_PI /4);
           Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6);
           C.insert(0,2) = 1.0;
           C.insert(1,0) = 1.0; C.insert(1,2) = 0.2;
@@ -313,9 +317,9 @@ namespace wholebodycontact_locomotion_planner_sample{
       }
       constraint->contactSearchLimit() = 0.04;
       constraint->precision() = 0.02;
-      constraint->contactWeight() = 2;
-      constraint->normalGradientDistance() = 0.05;
-      constraint->weight() << 1.0, 1.0, 1.0, 0.01, 0.01, 0.01; // rollやpitchを正確にすると、足裏の端で接触点探索の結果足の甲にいったときに、ほぼ最短接触点であるために接触点は変化せず、無理につま先立ちしようとしてIKがとけない、ということになる.
+      constraint->contactWeight() = 1;
+      constraint->normalGradientDistance() = 0.03;
+      constraint->weight() << 1.0, 1.0, 1.0, 0.1, 0.1, 0.01; // rollやpitchを正確にすると、足裏の端で接触点探索の結果足の甲にいったときに、ほぼ最短接触点であるために接触点は変化せず、無理につま先立ちしようとしてIKがとけない、ということになる.
       constraint->debugLevel() = 0;
       constraint->updateBounds();
 
