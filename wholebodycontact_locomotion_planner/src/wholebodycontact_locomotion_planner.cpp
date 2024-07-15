@@ -219,7 +219,7 @@ namespace wholebodycontact_locomotion_planner{
     }
     outputPath.clear();
     int pathId=0;
-      std::vector<std::shared_ptr<Contact> > currentContact = param->currentContactPoints;
+    std::vector<std::shared_ptr<Contact> > currentContact = param->currentContactPoints;
     while(pathId < guidePath.size()) {
       // 接触が切り替わる直前,または進むindexの最大値だけ進んだIDを探す
       // 接触リンクが同じで接触面が異なる場合も、はじめのdetach-attachで遷移可能.
@@ -400,6 +400,9 @@ namespace wholebodycontact_locomotion_planner{
       }
       // 接触の増加・減少処理
       if (pathId==guidePath.size()-1) { // 計画完了
+        if(param->debugLevel >= 0){
+          std::cerr << "[solveWBLP] succeeded." << std::endl;
+        }
         break;
       } else {
         std::vector<std::shared_ptr<Contact> > detachContact;

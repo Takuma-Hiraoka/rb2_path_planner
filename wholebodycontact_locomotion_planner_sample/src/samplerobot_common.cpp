@@ -17,19 +17,19 @@ namespace wholebodycontact_locomotion_planner_sample{
     std::vector<std::string> contactableLinkNames{
         "LLEG_ANKLE_R",
         "RLEG_ANKLE_R",
-        "LLEG_HIP_Y",
-        "RLEG_HIP_Y",
-        "LLEG_KNEE",
-        "RLEG_KNEE",
+        // "LLEG_HIP_Y",
+        // "RLEG_HIP_Y",
+        // "LLEG_KNEE",
+        // "RLEG_KNEE",
         "LARM_WRIST_R",
         "RARM_WRIST_R",
-        "LARM_SHOULDER_R",
-        "RARM_SHOULDER_R",
-        "LARM_ELBOW",
-        "RARM_ELBOW",
-        "WAIST",
-        "WAIST_R",
-        "CHEST"
+        // "LARM_SHOULDER_R",
+        // "RARM_SHOULDER_R",
+        // "LARM_ELBOW",
+        // "RARM_ELBOW",
+        // "WAIST",
+        // "WAIST_R",
+        // "CHEST"
         };
 
     cnoid::BodyLoader bodyLoader;
@@ -235,8 +235,8 @@ namespace wholebodycontact_locomotion_planner_sample{
       std::shared_ptr<ik_constraint2_distance_field::DistanceFieldCollisionConstraint> constraint = std::make_shared<ik_constraint2_distance_field::DistanceFieldCollisionConstraint>();
       constraint->A_link() = param->robot->link(i);
       constraint->field() = field;
-      constraint->tolerance() = 0.06; // ちょうど干渉すると法線ベクトルが変になることがあるので, 1回のiterationで動きうる距離よりも大きくせよ.
-      constraint->precision() = 0.05; // 角で不正確になりがちなので, toleranceを大きくしてprecisionも大きくして、best effort的にする. precisionはdistanceFieldのサイズの倍数より大きくする. 大きく動くのでつま先が近かったときにつま先は近くならないがかかとが地面にめり込む、ということは起こりうる.
+      constraint->tolerance() = 0.04; // ちょうど干渉すると法線ベクトルが変になることがあるので, 1回のiterationで動きうる距離よりも大きくせよ.
+      constraint->precision() = 0.03; // 角で不正確になりがちなので, toleranceを大きくしてprecisionも大きくして、best effort的にする. precisionはdistanceFieldのサイズの倍数より大きくする. 大きく動くのでつま先が近かったときにつま先は近くならないがかかとが地面にめり込む、ということは起こりうる.
       constraint->ignoreDistance() = 0.5; // 大きく動くので、ignoreも大きくする必要がある
       //      constraint->maxError() = 0.1; // めり込んだら一刻も早く離れたい
       constraint->updateBounds(); // キャッシュを内部に作る. キャッシュを作ったあと、10スレッドぶんコピーする方が速い
@@ -281,7 +281,7 @@ namespace wholebodycontact_locomotion_planner_sample{
           std::shared_ptr<ik_constraint2_distance_field::DistanceFieldCollisionConstraint> constraint = std::make_shared<ik_constraint2_distance_field::DistanceFieldCollisionConstraint>();
           constraint->A_link() = param->robot->link(i);
           constraint->field() = field;
-          constraint->tolerance() = 0.1; // ちょうど干渉すると法線ベクトルが変になることがあるので, 1回のiterationで動きうる距離よりも大きくせよ.
+          constraint->tolerance() = 0.05; // ちょうど干渉すると法線ベクトルが変になることがあるので, 1回のiterationで動きうる距離よりも大きくせよ.
           //          constraint->precision() = 0.01;
           constraint->ignoreDistance() = 0.5; // 大きく動くので、ignoreも大きくする必要がある
           //      constraint->maxError() = 0.1; // めり込んだら一刻も早く離れたい

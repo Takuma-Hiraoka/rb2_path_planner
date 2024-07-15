@@ -13,8 +13,8 @@ namespace wholebodycontact_locomotion_planner{
       variables.push_back(param->variables[i]);
     }
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints0;
-    double defaultTolerance = 0.06;
-    double defaultPrecision = 0.05;
+    double defaultTolerance = 0.04;
+    double defaultPrecision = 0.03;
     for (int i=0; i<param->constraints.size(); i++) {
       if (typeid(*(param->constraints[i]))==typeid(ik_constraint2_distance_field::DistanceFieldCollisionConstraint)) {
         bool skip=false;
@@ -30,7 +30,9 @@ namespace wholebodycontact_locomotion_planner{
           if (nextContacts[j]->name == std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->A_link()->name()) {
             if ((ikState == IKState::ATTACH) ||
                 (ikState == IKState::ATTACH_FIXED) ||
-                (ikState == IKState::SLIDE)) { // 実際に触れされるときだけ、触れるリンクの干渉は無視する. slideならはじめに着いたとき、detach-attachならdetachのときに干渉を考慮した姿勢が出ているので、そこから先は干渉しないと仮定.
+                (ikState == IKState::SLIDE) ||
+                (ikState == IKState::DETACH)) { // 実際に触れされるときだけ、触れるリンクの干渉は無視する. slideならはじめに着いたとき、detach-attachならdetachのときに干渉を考慮した姿勢が出ているので、そこから先は干渉しないと仮定.
+              // DETACH時もすでに触れているときの挙動を回避するため
               skip = true;
             } else {
               defaultTolerance = std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->tolerance();
