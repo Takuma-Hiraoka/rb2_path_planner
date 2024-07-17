@@ -61,8 +61,8 @@ namespace wholebodycontact_locomotion_planner{
       pikParam.checkFinalState=true;
       pikParam.calcVelocity = false;
       pikParam.debugLevel = 0;
-      pikParam.we = 1e2;
-      pikParam.wmax = 1e1;
+      pikParam.we = 5e0;
+      pikParam.wmax = 5e-1;
       pikParam.convergeThre = 5e-3;
       pikParam.maxIteration = 100;
     };
@@ -72,6 +72,10 @@ namespace wholebodycontact_locomotion_planner{
                    const std::shared_ptr<WBLPParam>& param,
                    std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > >& outputPath
                    );
+  bool solveCBStance(const std::shared_ptr<WBLPParam>& param,
+                     const std::vector<std::pair<std::vector<double>,std::vector<std::shared_ptr<Contact> > > >& guidePath,
+                     std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > >& outputPath // angle, contact
+                     );
   bool solveWBLP(const std::shared_ptr<WBLPParam>& param,
                  const std::vector<std::pair<std::vector<double>,std::vector<std::shared_ptr<Contact> > > >& guidePath,
                  std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > >& outputPath // angle, contact

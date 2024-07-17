@@ -81,7 +81,7 @@ namespace wholebodycontact_locomotion_planner{
         calcIgnoreBoundingBox(param->constraints, stopContacts[i], 3);
       }
       for (int i=0; i<nextContacts.size(); i++) {
-        if (ikState == IKState::SWING) { // 現在接触している状態から外すときに接触点も探索に含めてしまうと、リンクの裏側に接触点が移動してしまう
+        if ((ikState == IKState::SWING) || (ikState == IKState::CONTACT_SEARCH)) { // 現在接触している状態から外すときに接触点も探索に含めてしまうと、リンクの裏側に接触点が移動してしまう
           for (int j=0; j<param->bodyContactConstraints.size(); j++) {
             if (nextContacts[i]->name == param->bodyContactConstraints[j]->A_link()->name()) {
               std::shared_ptr<ik_constraint2_body_contact::BodyContactConstraint> constraint = param->bodyContactConstraints[j];
@@ -92,12 +92,20 @@ namespace wholebodycontact_locomotion_planner{
               }
               constraint->B_link() = nextContacts[i]->link2;
               constraint->B_localpos() = nextContacts[i]->localPose2;
-              constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.02); // 0.02だけ離す
+              constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.03); // 0.03だけ離す
               constraint->eval_localR() = constraint->B_localpos().linear();
               constraint->contact_pos_link()->T() = constraint->A_localpos();
               if (param->useSwingGIK) {goals.push_back(constraint); // 浮いている時はGIKをつかう
               } else {constraints2.push_back(constraint);}
               variables.push_back(constraint->contact_pos_link());
+              if (ikState == IKState::CONTACT_SEARCH) {
+                poses.push_back(nextContacts[i]->localPose2);
+                As.emplace_back(0,6);
+                bs.emplace_back(0);
+                Cs.push_back(nextContacts[i]->C);
+                dls.push_back(nextContacts[i]->dl);
+                dus.push_back(nextContacts[i]->du);
+              }
             }
           }
         } else {
@@ -118,7 +126,7 @@ namespace wholebodycontact_locomotion_planner{
           }
           constraint->B_link() = nextContacts[i]->link2;
           constraint->B_localpos() = nextContacts[i]->localPose2;
-          if (ikState==IKState::DETACH) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.02);
+          if (ikState==IKState::DETACH) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.03);
           if ((ikState==IKState::ATTACH) ||
               (ikState==IKState::ATTACH_FIXED) ||
               (ikState==IKState::SLIDE)) calcIgnoreBoundingBox(param->constraints, nextContacts[i], 3);
@@ -224,7 +232,7 @@ namespace wholebodycontact_locomotion_planner{
         }
       }
     }
-    if (ikState==IKState::SWING && solved) {
+    if (((ikState==IKState::SWING) || (ikState == IKState::CONTACT_SEARCH)) && solved) {
       for (int i=0; i<nextContacts.size(); i++) {
         for (int j=0; j<param->bodyContactConstraints.size(); j++) {
           if (nextContacts[i]->name == param->bodyContactConstraints[j]->A_link()->name()) {

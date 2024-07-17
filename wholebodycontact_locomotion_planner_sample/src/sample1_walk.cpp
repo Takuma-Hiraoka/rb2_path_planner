@@ -75,9 +75,17 @@ namespace wholebodycontact_locomotion_planner_sample{
     global_inverse_kinematics_solver::frame2Link(initialPose,param->variables);
     param->robot->calcForwardKinematics(false);
     param->robot->calcCenterOfMass();
-    bool solved = wholebodycontact_locomotion_planner::solveWBLP(param,
-                                                                 path,
-                                                                 contactPath);
+    bool solved = wholebodycontact_locomotion_planner::solveCBStance(param,
+                                                                     path,
+                                                                     contactPath);
+    if (!solved) return;
+    std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<wholebodycontact_locomotion_planner::Contact> > > > outputPath;
+    global_inverse_kinematics_solver::frame2Link(initialPose,param->variables);
+    param->robot->calcForwardKinematics(false);
+    param->robot->calcCenterOfMass();
+    solved = wholebodycontact_locomotion_planner::solveWBLP(param,
+                                                            contactPath,
+                                                            outputPath);
     if (!solved) return;
 
     while (true) {
@@ -103,6 +111,19 @@ namespace wholebodycontact_locomotion_planner_sample{
         param->robot->calcForwardKinematics(false);
         param->robot->calcCenterOfMass();
         global_inverse_kinematics_solver::frame2Link(contactPath.at(i).first,abstractVariables);
+        abstractRobot->calcForwardKinematics(false);
+        abstractRobot->calcCenterOfMass();
+        viewer->drawObjects();
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+      }
+      global_inverse_kinematics_solver::frame2Link(initialPose,param->variables);
+      param->robot->calcForwardKinematics(false);
+      param->robot->calcCenterOfMass();
+      for(int i=0;i<outputPath.size();i++){
+        global_inverse_kinematics_solver::frame2Link(outputPath.at(i).first,param->variables);
+        param->robot->calcForwardKinematics(false);
+        param->robot->calcCenterOfMass();
+        global_inverse_kinematics_solver::frame2Link(outputPath.at(i).first,abstractVariables);
         abstractRobot->calcForwardKinematics(false);
         abstractRobot->calcCenterOfMass();
         viewer->drawObjects();

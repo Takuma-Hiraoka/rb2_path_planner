@@ -12,6 +12,7 @@ namespace wholebodycontact_locomotion_planner{
       ATTACH_FIXED, // 離れている接触をつける, 接触ローカル位置は前回ついていた場所
       ATTACH, // 離れている接触をつける, 接触ローカル位置は探索された場所
       SWING, // 離れている接触を離れたまま移動する, 接触ローカル位置を探索する
+      CONTACT_SEARCH, // 接触は離れているが、ついているものとして重心制約を作る. 接触ローカル位置を探索する
       SLIDE, // ついている接触をついたまま移動する, 接触ローカル位置は前回ついていた場所
     };
   bool solveContactIK(const std::shared_ptr<WBLPParam>& param,

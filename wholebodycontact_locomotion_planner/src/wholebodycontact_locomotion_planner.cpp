@@ -201,8 +201,38 @@ namespace wholebodycontact_locomotion_planner{
       outputPath[i].second = contacts;
     }
     global_inverse_kinematics_solver::frame2Link(initialPose,param->variables);
+    param->robot->calcForwardKinematics(false);
+    param->robot->calcCenterOfMass();
     return true;
 
+  }
+
+  bool solveCBStance(const std::shared_ptr<WBLPParam>& param,
+                     const std::vector<std::pair<std::vector<double>,std::vector<std::shared_ptr<Contact> > > >& guidePath,
+                     std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > >& outputPath // angle, contact
+                     ) { // guidePathから、実際に接触した姿勢を作る. 特に接触点探索において幾何干渉のない接触点を作っておくことが目的
+    // bbxを計算
+    outputPath.clear();
+    for (int i=0; i<guidePath.size(); i++) {
+      std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
+      frame2Nominals(guidePath[i].first, param->variables, nominals);
+      global_inverse_kinematics_solver::frame2Link(guidePath[i].first, param->variables);
+      param->robot->calcForwardKinematics(false);
+      param->robot->calcCenterOfMass();
+      if(!solveContactIK(param, std::vector<std::shared_ptr<Contact>>{}, guidePath[i].second, nominals, IKState::CONTACT_SEARCH)) {
+        std::cerr << "[solveCBStance] failed." << std::endl;
+        return false;
+      }
+      std::vector<double> frame;
+      global_inverse_kinematics_solver::link2Frame(param->variables, frame);
+      outputPath.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > >(frame, guidePath[i].second));
+    }
+
+    if (param->debugLevel >= 1) std::cerr << "[solveCBStance] succeeded." << std::endl;
+    global_inverse_kinematics_solver::frame2Link(guidePath[0].first,param->variables);
+    param->robot->calcForwardKinematics(false);
+    param->robot->calcCenterOfMass();
+    return true;
   }
 
   bool solveWBLP(const std::shared_ptr<WBLPParam>& param,
@@ -286,7 +316,7 @@ namespace wholebodycontact_locomotion_planner{
           std::vector<double> frame;
           std::vector<cnoid::Isometry3> prevNextContactLocalPose1s;
           prevNextContactLocalPose1s.push_back(guidePath[idx].second[moveContactPathId]->localPose1);
-          if (!solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, nominals, idx==pathId ? IKState::DETACH : IKState::SWING)) break;
+          if (!solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, nominals, idx==pathId ? IKState::DETACH : IKState::DETACH)) break;
           global_inverse_kinematics_solver::link2Frame(param->variables, frame);
           if (solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, nominals, idx==pathId ? IKState::ATTACH_FIXED : IKState::ATTACH)) { // 着地も可能
             path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > >(frame, currentContact)); // TODO currentContactからmoveContactを除くこと
@@ -454,7 +484,7 @@ namespace wholebodycontact_locomotion_planner{
             // 接触を追加する
             std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
             frame2Nominals(guidePath[nextId].first, param->variables, nominals);
-            if(!solveContactIK(param, currentContact, attachContact, nominals, IKState::SWING)) {
+            if(!solveContactIK(param, currentContact, attachContact, nominals, IKState::DETACH)) {
               std::cerr << "cannot pre attach contact" << std::endl;
               break;
             }
