@@ -61,8 +61,8 @@ namespace wholebodycontact_locomotion_planner{
       pikParam.checkFinalState=true;
       pikParam.calcVelocity = false;
       pikParam.debugLevel = 0;
-      pikParam.we = 5e0;
-      pikParam.wmax = 5e-1;
+      pikParam.we = 5e1;
+      pikParam.wmax = 5e0;
       pikParam.convergeThre = 5e-3;
       pikParam.maxIteration = 100;
     };

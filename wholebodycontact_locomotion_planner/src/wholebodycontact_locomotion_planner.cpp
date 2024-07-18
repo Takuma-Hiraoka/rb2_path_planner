@@ -172,7 +172,7 @@ namespace wholebodycontact_locomotion_planner{
             contact->link2 = nullptr;
             contact->localPose2.translation() = it->second->reachabilityConstraints[j]->B_currentLocalp();
             cnoid::Vector3d z_axis = it->second->reachabilityConstraints[j]->currentDirection();
-            cnoid::Vector3d x_axis = (z_axis==cnoid::Vector3d::UnitY()) ? cnoid::Vector3d::UnitZ() : cnoid::Vector3d::UnitY().cross(z_axis);
+            cnoid::Vector3d x_axis = (z_axis==cnoid::Vector3d::UnitY() || z_axis==-cnoid::Vector3d::UnitY()) ? cnoid::Vector3d::UnitZ() : cnoid::Vector3d::UnitY().cross(z_axis);
             cnoid::Vector3d y_axis = z_axis.cross(x_axis);
             contact->localPose2.linear().col(0) = x_axis.normalized(); contact->localPose2.linear().col(1) = y_axis.normalized(); contact->localPose2.linear().col(2) = z_axis.normalized();
             contact->calcBoundingBox();

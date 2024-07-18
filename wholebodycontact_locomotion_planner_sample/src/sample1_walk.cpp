@@ -10,11 +10,11 @@ namespace wholebodycontact_locomotion_planner_sample{
   void sample1_walk(){
     cnoid::BodyPtr obstacle;
     std::shared_ptr<wholebodycontact_locomotion_planner::Environment> environment;
-    generateStepWorld(obstacle, environment);
+    generateWallWorld(obstacle, environment);
 
     std::shared_ptr<wholebodycontact_locomotion_planner::WBLPParam> param = std::make_shared<wholebodycontact_locomotion_planner::WBLPParam>();
     cnoid::BodyPtr abstractRobot;
-    generateSampleRobot(environment->obstacles, param, abstractRobot, true);
+    generateSampleRobot(environment->obstacles, param, abstractRobot, false);
     std::vector<double> initialPose;
     global_inverse_kinematics_solver::link2Frame(param->variables, initialPose);
 
@@ -26,7 +26,7 @@ namespace wholebodycontact_locomotion_planner_sample{
 
     viewer->drawObjects();
 
-    param->debugLevel=3;
+    param->debugLevel=0;
     param->viewer = viewer;
     param->gikRootParam.range = 0.5;
     param->gikRootParam.viewer = viewer;
@@ -39,12 +39,12 @@ namespace wholebodycontact_locomotion_planner_sample{
     param->toParam.shortcut = true;
     //    param->gikRootParam.pikParam.debugLevel = 1;
     param->pikParam.viewer = viewer;
-    param->pikParam.debugLevel = 3;
+    param->pikParam.debugLevel = 0;
     param->pikParam.viewMilliseconds = -1;
 
     cnoid::Isometry3 goal = param->robot->rootLink()->T();
-    goal.translation()[0] += 0.5;
-    //    goal.translation()[2] += 0.35;
+    goal.translation()[0] += 0.2;
+    goal.translation()[2] += 0.75;
 
     std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<wholebodycontact_locomotion_planner::Contact> > > > path;
 

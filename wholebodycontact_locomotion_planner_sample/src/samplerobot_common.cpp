@@ -215,6 +215,12 @@ namespace wholebodycontact_locomotion_planner_sample{
       constraint->joint() = param->robot->joint(i);
       param->constraints.push_back(constraint);
     }
+    // joint displacement
+    for(int i=0;i<param->robot->numJoints();i++){
+      std::shared_ptr<ik_constraint2::JointDisplacementConstraint> constraint = std::make_shared<ik_constraint2::JointDisplacementConstraint>();
+      constraint->joint() = param->robot->joint(i);
+      param->constraints.push_back(constraint);
+    }
     // environmental collision
     for (int i=0; i<param->robot->numLinks(); i++) {
       if(param->robot->link(i)->name() == "LLEG_ANKLE_P" ||
@@ -316,10 +322,10 @@ namespace wholebodycontact_locomotion_planner_sample{
         if (it->first==param->robot->link(i)->name()) constraint->setContactPoints(it->second, 0.05, 16);
       }
       constraint->contactSearchLimit() = 0.03;
-      constraint->precision() = 0.01;
+      constraint->precision() = 0.02;
       constraint->contactWeight() = 1;
       constraint->normalGradientDistance() = 0.05;
-      constraint->weight() << 1.0, 1.0, 1.0, 0.1, 0.1, 0.01; // rollやpitchを正確にすると、足裏の端で接触点探索の結果足の甲にいったときに、ほぼ最短接触点であるために接触点は変化せず、無理につま先立ちしようとしてIKがとけない、ということになる.
+      constraint->weight() << 1.0, 1.0, 1.0, 0.01, 0.01, 0.01; // rollやpitchを正確にすると、足裏の端で接触点探索の結果足の甲にいったときに、ほぼ最短接触点であるために接触点は変化せず、無理につま先立ちしようとしてIKがとけない、ということになる.
       constraint->debugLevel() = 0;
       constraint->updateBounds();
 
