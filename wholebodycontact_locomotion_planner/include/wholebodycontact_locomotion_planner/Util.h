@@ -8,7 +8,8 @@
 namespace wholebodycontact_locomotion_planner{
   enum class IKState
     {
-      DETACH, // ついている接触を離す, 接触ローカル位置は前回ついていた場所
+      DETACH_FIXED, // ついている接触を離す, 接触ローカル位置は前回ついていた場所
+      DETACH, // ついている接触を離す, 接触ローカル位置は探索された場所
       ATTACH_FIXED, // 離れている接触をつける, 接触ローカル位置は前回ついていた場所
       ATTACH, // 離れている接触をつける, 接触ローカル位置は探索された場所
       SWING, // 離れている接触を離れたまま移動する, 接触ローカル位置を探索する

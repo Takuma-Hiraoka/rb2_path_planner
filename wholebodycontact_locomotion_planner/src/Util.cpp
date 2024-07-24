@@ -31,7 +31,8 @@ namespace wholebodycontact_locomotion_planner{
             if ((ikState == IKState::ATTACH) ||
                 (ikState == IKState::ATTACH_FIXED) ||
                 (ikState == IKState::SLIDE) ||
-                (ikState == IKState::DETACH)) { // 実際に触れされるときだけ、触れるリンクの干渉は無視する. slideならはじめに着いたとき、detach-attachならdetachのときに干渉を考慮した姿勢が出ているので、そこから先は干渉しないと仮定.
+                (ikState == IKState::DETACH) ||
+                (ikState == IKState::DETACH_FIXED)) { // 実際に触れされるときだけ、触れるリンクの干渉は無視する. slideならはじめに着いたとき、detach-attachならdetachのときに干渉を考慮した姿勢が出ているので、そこから先は干渉しないと仮定.
               // DETACH時もすでに触れているときの挙動を回避するため
               skip = true;
             } else {
@@ -95,7 +96,7 @@ namespace wholebodycontact_locomotion_planner{
               constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.03); // 0.03だけ離す
               constraint->eval_localR() = constraint->B_localpos().linear();
               constraint->contact_pos_link()->T() = constraint->A_localpos();
-              if (param->useSwingGIK) {goals.push_back(constraint); // 浮いている時はGIKをつかう
+              if ((ikState == IKState::SWING) && param->useSwingGIK) {goals.push_back(constraint); // 浮いている時はGIKをつかう
               } else {constraints2.push_back(constraint);}
               variables.push_back(constraint->contact_pos_link());
               if (ikState == IKState::CONTACT_SEARCH) {
@@ -111,7 +112,7 @@ namespace wholebodycontact_locomotion_planner{
         } else {
           std::shared_ptr<ik_constraint2::PositionConstraint> constraint = std::make_shared<ik_constraint2::PositionConstraint>();
           constraint->A_link() = nextContacts[i]->link1;
-          if ((ikState==IKState::DETACH) ||
+          if ((ikState==IKState::DETACH_FIXED) ||
               (ikState==IKState::ATTACH_FIXED) ||
               (ikState==IKState::SLIDE)) {
             for (int j=0; j<stopContacts.size(); j++) {
@@ -119,21 +120,26 @@ namespace wholebodycontact_locomotion_planner{
                 constraint->A_localpos() = stopContacts[j]->localPose1;
               }
             }
-          } else if (ikState==IKState::ATTACH) {
+          } else if ((ikState==IKState::DETACH) ||
+                     (ikState==IKState::ATTACH)) {
             constraint->A_localpos() = nextContacts[i]->localPose1;
           } else {
             std::cerr << "Undefined IKState !!" << std::endl;
           }
           constraint->B_link() = nextContacts[i]->link2;
           constraint->B_localpos() = nextContacts[i]->localPose2;
-          if (ikState==IKState::DETACH) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.03);
+          if ((ikState==IKState::DETACH) ||
+              (ikState==IKState::DETACH_FIXED)) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.03);
           if ((ikState==IKState::ATTACH) ||
               (ikState==IKState::ATTACH_FIXED) ||
               (ikState==IKState::SLIDE)) calcIgnoreBoundingBox(param->constraints, nextContacts[i], 3);
           constraint->eval_link() = nullptr;
           constraint->eval_localR() = nextContacts[i]->localPose2.rotation();
           constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 0.01;
-          constraints2.push_back(constraint);
+          if (((ikState==IKState::DETACH) ||
+              (ikState==IKState::DETACH_FIXED)) &&
+              param->useSwingGIK) {goals.push_back(constraint); // 浮いている時はGIKをつかう
+          } else {constraints2.push_back(constraint);}
           if (ikState==IKState::SLIDE) {
             for (int j=0; j<stopContacts.size(); j++) {
               if (nextContacts[i]->name == stopContacts[j]->name) {
@@ -178,6 +184,7 @@ namespace wholebodycontact_locomotion_planner{
     if ((ikState==IKState::ATTACH) ||
         (ikState==IKState::ATTACH_FIXED) ||
         (ikState==IKState::SLIDE) ||
+        (ikState==IKState::CONTACT_SEARCH) ||
         !param->useSwingGIK) {
       std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0, constraints1, constraints2, nominals};
       std::vector<std::shared_ptr<prioritized_qp_base::Task> > prevTasks;
@@ -187,7 +194,7 @@ namespace wholebodycontact_locomotion_planner{
                                                                      param->pikParam
                                                                      );
     } else {
-      std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0, constraints1, constraints2};
+      std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0, constraints1};
       param->gikParam.projectLink.resize(1);
       param->gikParam.projectLink[0] = nextContacts[0]->link1;
       param->gikParam.projectLocalPose = nextContacts[0]->localPose1;

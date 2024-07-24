@@ -51,7 +51,7 @@ namespace wholebodycontact_locomotion_planner{
       gikParam = gikRootParam;
       gikParam.delta = 0.4;
       gikParam.projectCellSize = 0.05;
-      gikParam.threads = 20;
+      gikParam.threads = 10;
       gikParam.timeout = 10; // 滑りがあるので遅いときは諦めて良い
       gikParam.goalBias = 0.05;
       /* gikParam.pikParam.we = 1e2; // 逆運動学が振動しないこと優先. 1e0だと不安定. 1e3だと大きすぎる */

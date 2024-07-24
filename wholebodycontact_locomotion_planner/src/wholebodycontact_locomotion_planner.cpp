@@ -256,13 +256,13 @@ namespace wholebodycontact_locomotion_planner{
       int nextId;
       bool change = false;
       for (nextId=pathId+1;nextId<guidePath.size() && !change && nextId<pathId + param->maxSubGoalIdx;nextId++) {
-        if(currentContact.size() != guidePath[nextId].second.size()) break;
+        if(currentContact.size() != guidePath[nextId].second.size()) change = true;
         for (int i=0; i<currentContact.size(); i++) {
           if (currentContact[i]->name != guidePath[nextId].second[i]->name) {
             change = true;
-            break;
           }
         }
+        if (change) break;
       }
       if (param->debugLevel >= 2) {
         std::cerr << "[solveWBLP] current pathId : " << pathId << ". nextId :  " << nextId << std::endl;
@@ -316,7 +316,7 @@ namespace wholebodycontact_locomotion_planner{
           std::vector<double> frame;
           std::vector<cnoid::Isometry3> prevNextContactLocalPose1s;
           prevNextContactLocalPose1s.push_back(guidePath[idx].second[moveContactPathId]->localPose1);
-          if (!solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, nominals, idx==pathId ? IKState::DETACH : IKState::DETACH)) break;
+          if (!solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, nominals, idx==pathId ? IKState::DETACH_FIXED : IKState::DETACH)) break;
           global_inverse_kinematics_solver::link2Frame(param->variables, frame);
           if (solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, nominals, idx==pathId ? IKState::ATTACH_FIXED : IKState::ATTACH)) { // 着地も可能
             path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > >(frame, currentContact)); // TODO currentContactからmoveContactを除くこと
@@ -427,7 +427,7 @@ namespace wholebodycontact_locomotion_planner{
         }
 
         outputPath.insert(outputPath.end(), path.begin(), path.end());
-      }
+      } // maxContactIter
       // 接触の増加・減少処理
       if (pathId==guidePath.size()-1) { // 計画完了
         if(param->debugLevel >= 0){
@@ -456,7 +456,7 @@ namespace wholebodycontact_locomotion_planner{
           {
             std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
             frame2Nominals(guidePath[nextId].first, param->variables, nominals);
-            if(!solveContactIK(param, currentContact, detachContact, nominals, IKState::DETACH)) {
+            if(!solveContactIK(param, currentContact, detachContact, nominals, IKState::DETACH_FIXED)) {
               std::cerr << "cannot detach contact" << std::endl;
               break;
             }

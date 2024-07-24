@@ -41,6 +41,9 @@ namespace wholebodycontact_locomotion_planner_sample{
     param->pikParam.viewer = viewer;
     param->pikParam.debugLevel = 0;
     param->pikParam.viewMilliseconds = -1;
+    param->gikParam.viewer = viewer;
+    param->gikParam.threads = param->gikRootParam.threads;
+    param->useSwingGIK = true;
 
     cnoid::Isometry3 goal = param->robot->rootLink()->T();
     goal.translation()[0] += 0.2;
