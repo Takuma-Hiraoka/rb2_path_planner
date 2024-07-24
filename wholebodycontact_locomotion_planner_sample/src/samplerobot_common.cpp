@@ -287,7 +287,7 @@ namespace wholebodycontact_locomotion_planner_sample{
           std::shared_ptr<ik_constraint2_distance_field::DistanceFieldCollisionConstraint> constraint = std::make_shared<ik_constraint2_distance_field::DistanceFieldCollisionConstraint>();
           constraint->A_link() = param->robot->link(i);
           constraint->field() = field;
-          constraint->tolerance() = 0.1; // ちょうど干渉すると法線ベクトルが変になることがあるので, 1回のiterationで動きうる距離よりも大きくせよ.
+          constraint->tolerance() = 0.3; // ちょうど干渉すると法線ベクトルが変になることがあるので, 1回のiterationで動きうる距離よりも大きくせよ.
           //          constraint->precision() = 0.01;
           constraint->ignoreDistance() = 0.5; // 大きく動くので、ignoreも大きくする必要がある
           //      constraint->maxError() = 0.1; // めり込んだら一刻も早く離れたい
@@ -321,11 +321,11 @@ namespace wholebodycontact_locomotion_planner_sample{
       for(std::unordered_map<std::string, std::vector<cnoid::Isometry3> >::const_iterator it=contactPoints.begin(); it!=contactPoints.end(); it++){
         if (it->first==param->robot->link(i)->name()) constraint->setContactPoints(it->second, 0.05, 16);
       }
-      constraint->contactSearchLimit() = 0.03;
+      constraint->contactSearchLimit() = 0.01; // 大きすぎると振動してしまうので注意
       constraint->precision() = 0.02;
       constraint->contactWeight() = 1;
       constraint->normalGradientDistance() = 0.05;
-      constraint->weight() << 1.0, 1.0, 1.0, 0.01, 0.01, 0.01; // rollやpitchを正確にすると、足裏の端で接触点探索の結果足の甲にいったときに、ほぼ最短接触点であるために接触点は変化せず、無理につま先立ちしようとしてIKがとけない、ということになる.
+      constraint->weight() << 1.0, 1.0, 1.0, 0.0, 0.0, 0.0; // rollやpitchを正確にすると、足裏の端で接触点探索の結果足の甲にいったときに、ほぼ最短接触点であるために接触点は変化せず、無理につま先立ちしようとしてIKがとけない、ということになる.
       constraint->debugLevel() = 0;
       constraint->updateBounds();
 
