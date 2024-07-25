@@ -320,7 +320,7 @@ namespace wholebodycontact_locomotion_planner_sample{
       constraint->contactSearchLimit() = 0.01; // 大きすぎると振動してしまうので注意
       constraint->precision() = 0.02;
       constraint->contactWeight() = 1;
-      constraint->normalGradientDistance() = 0.05;
+      constraint->normalGradientDistance() = 0.03;
       constraint->weight() << 1.0, 1.0, 1.0, 0.0, 0.0, 0.0; // rollやpitchを正確にすると、足裏の端で接触点探索の結果足の甲にいったときに、ほぼ最短接触点であるために接触点は変化せず、無理につま先立ちしようとしてIKがとけない、ということになる.
       constraint->debugLevel() = 0;
       constraint->updateBounds();

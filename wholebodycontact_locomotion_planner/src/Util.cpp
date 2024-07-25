@@ -96,7 +96,12 @@ namespace wholebodycontact_locomotion_planner{
               constraint->eval_localR() = constraint->B_localpos().linear();
               constraint->contact_pos_link()->T() = constraint->A_localpos();
               constraints2.push_back(constraint);
-              variables.push_back(constraint->contact_pos_link());
+              {
+                variables.push_back(constraint->contact_pos_link());
+                std::vector<double> dqWeight = std::vector<double>(6,1);
+                std::copy(dqWeight.begin(), dqWeight.end(), std::back_inserter(param->pikParam.dqWeight));
+                std::copy(dqWeight.begin(), dqWeight.end(), std::back_inserter(param->gikParam.pikParam.dqWeight));
+              }
               if (ikState == IKState::CONTACT_SEARCH) {
                 poses.push_back(nextContacts[i]->localPose2);
                 As.emplace_back(0,6);
@@ -235,6 +240,8 @@ namespace wholebodycontact_locomotion_planner{
       }
     }
     if (((ikState==IKState::SWING) || (ikState == IKState::CONTACT_SEARCH)) && solved) {
+      param->pikParam.dqWeight.resize(6+param->robot->numJoints());
+      param->gikParam.pikParam.dqWeight.resize(6+param->robot->numJoints());
       for (int i=0; i<nextContacts.size(); i++) {
         for (int j=0; j<param->bodyContactConstraints.size(); j++) {
           if (nextContacts[i]->name == param->bodyContactConstraints[j]->A_link()->name()) {
