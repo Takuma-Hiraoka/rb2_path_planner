@@ -111,6 +111,7 @@ namespace wholebodycontact_locomotion_planner{
     }
     constraints1.push_back(conditions);
     constraints.push_back(constraints1);
+    std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > rejections{conditions};
 
     for (int i=0; i<constraints.size(); i++) {
       for (int j=0; j<constraints[i].size(); j++) {
@@ -136,6 +137,7 @@ namespace wholebodycontact_locomotion_planner{
                                                    constraints,
                                                    goals,
                                                    param->nominals,
+                                                   rejections,
                                                    param->gikRootParam,
                                                    path
                                                    )){
