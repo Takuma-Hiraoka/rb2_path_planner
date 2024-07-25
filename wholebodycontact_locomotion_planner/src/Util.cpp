@@ -164,7 +164,7 @@ namespace wholebodycontact_locomotion_planner{
                 cnoid::VectorX dl = Eigen::VectorXd::Zero(5);
                 dls.push_back(dl);
                 cnoid::VectorX du = 1e10 * Eigen::VectorXd::Ones(5);
-                du[0] = 2000.0;
+                du[0] = 20000.0;
                 dus.push_back(du);
               }
             }

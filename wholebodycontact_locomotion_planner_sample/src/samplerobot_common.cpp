@@ -116,7 +116,7 @@ namespace wholebodycontact_locomotion_planner_sample{
         cnoid::VectorX dl = Eigen::VectorXd::Zero(11);
         lleg->dl = dl;
         cnoid::VectorX du = 1e10 * Eigen::VectorXd::Ones(11);
-        du[0] = 2000.0;
+        du[0] = 20000.0;
         lleg->du = du;
         param->currentContactPoints.push_back(lleg);
       }
@@ -142,7 +142,7 @@ namespace wholebodycontact_locomotion_planner_sample{
         cnoid::VectorX dl = Eigen::VectorXd::Zero(11);
         rleg->dl = dl;
         cnoid::VectorX du = 1e10 * Eigen::VectorXd::Ones(11);
-        du[0] = 2000.0;
+        du[0] = 20000.0;
         rleg->du = du;
         param->currentContactPoints.push_back(rleg);
       }
@@ -170,7 +170,7 @@ namespace wholebodycontact_locomotion_planner_sample{
           cnoid::VectorX dl = Eigen::VectorXd::Zero(11);
           larm->dl = dl;
           cnoid::VectorX du = 1e10 * Eigen::VectorXd::Ones(11);
-          du[0] = 2000.0;
+          du[0] = 20000.0;
           larm->du = du;
           param->currentContactPoints.push_back(larm);
         }
@@ -197,7 +197,7 @@ namespace wholebodycontact_locomotion_planner_sample{
           cnoid::VectorX dl = Eigen::VectorXd::Zero(11);
           rarm->dl = dl;
           cnoid::VectorX du = 1e10 * Eigen::VectorXd::Ones(11);
-          du[0] = 2000.0;
+          du[0] = 20000.0;
           rarm->du = du;
           param->currentContactPoints.push_back(rarm);
         }
