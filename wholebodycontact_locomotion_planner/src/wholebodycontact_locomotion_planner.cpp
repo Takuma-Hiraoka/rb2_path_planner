@@ -451,65 +451,63 @@ namespace wholebodycontact_locomotion_planner{
           }
           if(attach) attachContact.push_back(guidePath[nextId].second[i]);
         }
-        if (detachContact.size() != 0 || attachContact.size() != 0) {
+        if (detachContact.size() != 0) {
           // まず接触を離す
-          {
-            std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
-            frame2Nominals(guidePath[nextId].first, param->variables, nominals);
-            if(!solveContactIK(param, currentContact, detachContact, nominals, IKState::DETACH_FIXED)) {
-              std::cerr << "cannot detach contact" << std::endl;
-              break;
-            }
+          std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
+          frame2Nominals(guidePath[nextId].first, param->variables, nominals);
+          if(!solveContactIK(param, currentContact, detachContact, nominals, IKState::DETACH_FIXED)) {
+            std::cerr << "cannot detach contact" << std::endl;
+            break;
+          }
 
-            // currentContactを更新
-            for (int i=0; i<currentContact.size(); i++) {
-              for (int j=0;j<detachContact.size(); j++) {
-                if (currentContact[i]->name == detachContact[j]->name) {
-                  currentContact.erase(currentContact.begin() + i);
-                }
+          // currentContactを更新
+          for (int i=0; i<currentContact.size(); i++) {
+            for (int j=0;j<detachContact.size(); j++) {
+              if (currentContact[i]->name == detachContact[j]->name) {
+                currentContact.erase(currentContact.begin() + i);
               }
             }
-
-            std::vector<double> frame;
-            global_inverse_kinematics_solver::link2Frame(param->variables, frame);
-            outputPath.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (frame, currentContact));
           }
+
+          std::vector<double> frame;
+          global_inverse_kinematics_solver::link2Frame(param->variables, frame);
+          outputPath.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (frame, currentContact));
           if(param->debugLevel >= 3){
             if(param->viewer){
               param->viewer->drawObjects();
             }
           }
+        }
 
-          {
-            // 接触を追加する
-            std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
-            frame2Nominals(guidePath[nextId].first, param->variables, nominals);
-            if(!solveContactIK(param, currentContact, attachContact, nominals, IKState::DETACH)) {
-              std::cerr << "cannot pre attach contact" << std::endl;
-              break;
-            }
+        if (attachContact.size() != 0) {
+          // 接触を追加する
+          std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
+          frame2Nominals(guidePath[nextId].first, param->variables, nominals);
+          if(!solveContactIK(param, currentContact, attachContact, nominals, IKState::DETACH)) {
+            std::cerr << "cannot pre attach contact" << std::endl;
+            break;
+          }
 
-            // currentContactを更新
-            currentContact.insert(currentContact.end(), attachContact.begin(), attachContact.end());
+          // currentContactを更新
+          currentContact.insert(currentContact.end(), attachContact.begin(), attachContact.end());
 
-            std::vector<double> frame;
-            global_inverse_kinematics_solver::link2Frame(param->variables, frame);
-            outputPath.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (frame, currentContact)); // TODO currentContactからattachContactを除くこと
-            if(param->debugLevel >= 3){
-              if(param->viewer){
-                param->viewer->drawObjects();
-              }
+          std::vector<double> frame;
+          global_inverse_kinematics_solver::link2Frame(param->variables, frame);
+          outputPath.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (frame, currentContact)); // TODO currentContactからattachContactを除くこと
+          if(param->debugLevel >= 3){
+            if(param->viewer){
+              param->viewer->drawObjects();
             }
-            if(!solveContactIK(param, currentContact, attachContact, nominals, IKState::ATTACH)) {
-              std::cerr << "cannot attach contact" << std::endl;
-              break;
-            }
-            global_inverse_kinematics_solver::link2Frame(param->variables, frame);
-            outputPath.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (frame, currentContact)); // TODO currentContactからattachContactを除くこと
-            if(param->debugLevel >= 3){
-              if(param->viewer){
-                param->viewer->drawObjects();
-              }
+          }
+          if(!solveContactIK(param, currentContact, attachContact, nominals, IKState::ATTACH)) {
+            std::cerr << "cannot attach contact" << std::endl;
+            break;
+          }
+          global_inverse_kinematics_solver::link2Frame(param->variables, frame);
+          outputPath.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (frame, currentContact)); // TODO currentContactからattachContactを除くこと
+          if(param->debugLevel >= 3){
+            if(param->viewer){
+              param->viewer->drawObjects();
             }
           }
         }

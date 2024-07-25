@@ -50,12 +50,13 @@ namespace wholebodycontact_locomotion_planner{
 
       gikParam = gikRootParam;
       gikParam.delta = 0.4;
-      gikParam.projectCellSize = 0.05;
+      gikParam.projectCellSize = 0.02;
       gikParam.threads = 10;
-      gikParam.timeout = 10; // 滑りがあるので遅いときは諦めて良い
-      gikParam.goalBias = 0.05;
-      /* gikParam.pikParam.we = 1e2; // 逆運動学が振動しないこと優先. 1e0だと不安定. 1e3だと大きすぎる */
-      /* gikParam.pikParam.wmax = 1e1; // 1e2程度にすると関節がめり込まなくなるが、ほとんど動かない. */
+      gikParam.timeout = 2; // 滑りがあるので遅いときは諦めて良い
+      gikParam.goalBias = 0.2;
+      gikParam.pikParam.we = 1e2; // 逆運動学が振動しないこと優先. 1e0だと不安定. 1e3だと大きすぎる
+      gikParam.pikParam.wmax = 1e1; // 1e2程度にすると関節がめり込まなくなるが、ほとんど動かない.
+      gikParam.pikParam.convergeThre = 5e-3;
 
       toParam.shortcutThre=4e-2;
       pikParam.checkFinalState=true;

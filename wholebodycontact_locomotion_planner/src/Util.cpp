@@ -57,7 +57,6 @@ namespace wholebodycontact_locomotion_planner{
     std::vector<cnoid::VectorX> dus;
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints1;
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints2;
-    std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > goals;
     {
       for (int i=0; i<stopContacts.size(); i++) {
         bool move=false;
@@ -96,8 +95,7 @@ namespace wholebodycontact_locomotion_planner{
               constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.03); // 0.03だけ離す
               constraint->eval_localR() = constraint->B_localpos().linear();
               constraint->contact_pos_link()->T() = constraint->A_localpos();
-              if ((ikState == IKState::SWING) && param->useSwingGIK) {goals.push_back(constraint); // 浮いている時はGIKをつかう
-              } else {constraints2.push_back(constraint);}
+              constraints2.push_back(constraint);
               variables.push_back(constraint->contact_pos_link());
               if (ikState == IKState::CONTACT_SEARCH) {
                 poses.push_back(nextContacts[i]->localPose2);
@@ -136,10 +134,7 @@ namespace wholebodycontact_locomotion_planner{
           constraint->eval_link() = nullptr;
           constraint->eval_localR() = nextContacts[i]->localPose2.rotation();
           constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 0.01;
-          if (((ikState==IKState::DETACH) ||
-              (ikState==IKState::DETACH_FIXED)) &&
-              param->useSwingGIK) {goals.push_back(constraint); // 浮いている時はGIKをつかう
-          } else {constraints2.push_back(constraint);}
+          constraints2.push_back(constraint);
           if (ikState==IKState::SLIDE) {
             for (int j=0; j<stopContacts.size(); j++) {
               if (nextContacts[i]->name == stopContacts[j]->name) {
@@ -207,7 +202,7 @@ namespace wholebodycontact_locomotion_planner{
       }
       solved = global_inverse_kinematics_solver::solveGIK(variables,
                                                           constraints,
-                                                          goals,
+                                                          constraints2,
                                                           nominals,
                                                           param->gikParam,
                                                           path);
