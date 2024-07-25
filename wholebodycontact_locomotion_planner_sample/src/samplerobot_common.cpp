@@ -99,8 +99,7 @@ namespace wholebodycontact_locomotion_planner_sample{
         lleg->name = "LLEG_ANKLE_R";
         lleg->link1 = param->robot->link("LLEG_ANKLE_R");
         lleg->localPose1.translation() = cnoid::Vector3(0.0,0.0,-0.055);
-        lleg->localPose2.translation() = cnoid::Vector3(0.0,0.09,0.0);
-        if (quadruped) lleg->localPose2.translation() = cnoid::Vector3(-0.2,0.09,0.0);
+        lleg->localPose2 = lleg->link1->T() * lleg->localPose1;
         Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6);
         C.insert(0,2) = 1.0;
         C.insert(1,0) = 1.0; C.insert(1,2) = 0.2;
@@ -126,8 +125,7 @@ namespace wholebodycontact_locomotion_planner_sample{
         rleg->name = "RLEG_ANKLE_R";
         rleg->link1 = param->robot->link("RLEG_ANKLE_R");
         rleg->localPose1.translation() = cnoid::Vector3(0.0,0.0,-0.055);
-        rleg->localPose2.translation() = cnoid::Vector3(0.0,-0.09,0.0);
-        if (quadruped) rleg->localPose2.translation() = cnoid::Vector3(-0.2,-0.09,0.0);
+        rleg->localPose2 = rleg->link1->T() * rleg->localPose1;
         Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6);
         C.insert(0,2) = 1.0;
         C.insert(1,0) = 1.0; C.insert(1,2) = 0.2;
@@ -155,8 +153,7 @@ namespace wholebodycontact_locomotion_planner_sample{
           larm->link1 = param->robot->link("LARM_WRIST_R");
           larm->localPose1.translation() = cnoid::Vector3(-0.025,0.0,-0.195);
           larm->localPose1.linear() = cnoid::rotFromRpy(0,M_PI /2,0);
-          larm->localPose2.translation() = cnoid::Vector3(0.45,0.09,0.0);
-          larm->localPose2.linear() = cnoid::rotFromRpy(0,0,-M_PI /4);
+          larm->localPose2 = larm->link1->T() * larm->localPose1;
           Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6);
           C.insert(0,2) = 1.0;
           C.insert(1,0) = 1.0; C.insert(1,2) = 0.2;
@@ -183,8 +180,7 @@ namespace wholebodycontact_locomotion_planner_sample{
           rarm->link1 = param->robot->link("RARM_WRIST_R");
           rarm->localPose1.translation() = cnoid::Vector3(-0.025,0.0,-0.195);
           rarm->localPose1.linear() = cnoid::rotFromRpy(0,M_PI /2,0);
-          rarm->localPose2.translation() = cnoid::Vector3(0.45,-0.09,0.0);
-          rarm->localPose2.linear() = cnoid::rotFromRpy(0,0,M_PI /4);
+          rarm->localPose2 = rarm->link1->T() * rarm->localPose1;
           Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6);
           C.insert(0,2) = 1.0;
           C.insert(1,0) = 1.0; C.insert(1,2) = 0.2;
