@@ -49,13 +49,13 @@ namespace wholebodycontact_locomotion_planner{
       gikRootParam.pikParam.pathOutputLoop = 5;
 
       gikParam = gikRootParam;
-      gikParam.delta = 0.4;
+      gikParam.delta = 0.01; // この距離内のstateは、中間のconstraintチェック無しで遷移可能. stateごとの距離がこの距離以内だとそもそも同じstateとみなされてあたらしくstateを作らない. gikParamは接触点探索用で、足を浮かせるとき等はstateが大きく変化しないので、deltaも小さくしておかないとstateが増えない.
       gikParam.projectCellSize = 0.02;
       gikParam.threads = 10;
       gikParam.timeout = 2; // 滑りがあるので遅いときは諦めて良い
       gikParam.goalBias = 0.2;
-      gikParam.pikParam.we = 1e2; // 逆運動学が振動しないこと優先. 1e0だと不安定. 1e3だと大きすぎる
-      gikParam.pikParam.wmax = 1e1; // 1e2程度にすると関節がめり込まなくなるが、ほとんど動かない.
+      gikParam.pikParam.we = 1e1; // 逆運動学が振動しないこと優先. 1e0だと不安定. 1e3だと大きすぎる
+      gikParam.pikParam.wmax = 1e0; // 1e2程度にすると関節がめり込まなくなるが、ほとんど動かない.
       gikParam.pikParam.convergeThre = 5e-3;
 
       toParam.shortcutThre=4e-2;
