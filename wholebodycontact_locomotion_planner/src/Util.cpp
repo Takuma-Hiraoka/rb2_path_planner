@@ -181,20 +181,21 @@ namespace wholebodycontact_locomotion_planner{
     constraints1.push_back(scfrConstraint);
 
     bool solved;
-    if ((ikState==IKState::ATTACH) ||
-        (ikState==IKState::ATTACH_FIXED) ||
-        (ikState==IKState::SLIDE) ||
-        (ikState==IKState::CONTACT_SEARCH) ||
-        !param->useSwingGIK) {
-      std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0, constraints1, constraints2, nominals};
-      std::vector<std::shared_ptr<prioritized_qp_base::Task> > prevTasks;
-      solved  =  prioritized_inverse_kinematics_solver2::solveIKLoop(variables,
-                                                                     constraints,
-                                                                     prevTasks,
-                                                                     param->pikParam
-                                                                     );
-    } else {
-      std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0, constraints1};
+    std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0, constraints1, constraints2, nominals};
+    std::vector<std::shared_ptr<prioritized_qp_base::Task> > prevTasks;
+    solved  =  prioritized_inverse_kinematics_solver2::solveIKLoop(variables,
+                                                                   constraints,
+                                                                   prevTasks,
+                                                                   param->pikParam
+                                                                   );
+    if (!solved && // 単に勾配を降りるだけで解けるなら大域探索は行わない
+        ((ikState==IKState::DETACH) ||
+         (ikState==IKState::DETACH_FIXED) ||
+         (ikState==IKState::ATTACH) ||
+         (ikState==IKState::ATTACH_FIXED) ||
+         (ikState==IKState::SLIDE)) // 干渉判定ができないので触れるときはgikのpathが実行不可能なものが出てくる可能性があるが、単に姿勢だけを出す目的でのみ使う. 接触ローカル座標系の位置姿勢が変わらないのでめり込むような姿勢は出てきにくいはず.
+        && param->useSwingGIK){
+      std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > gikConstraints{constraints0, constraints1};
       param->gikParam.projectLink.resize(1);
       param->gikParam.projectLink[0] = nextContacts[0]->link1;
       param->gikParam.projectLocalPose = nextContacts[0]->localPose1;
@@ -206,7 +207,7 @@ namespace wholebodycontact_locomotion_planner{
         }
       }
       solved = global_inverse_kinematics_solver::solveGIK(variables,
-                                                          constraints,
+                                                          gikConstraints,
                                                           constraints2,
                                                           nominals,
                                                           param->gikParam,
