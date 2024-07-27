@@ -223,8 +223,10 @@ namespace wholebodycontact_locomotion_planner{
       param->robot->calcForwardKinematics(false);
       param->robot->calcCenterOfMass();
       if(!solveContactIK(param, std::vector<std::shared_ptr<Contact>>{}, guidePath[i].second, nominals, IKState::CONTACT_SEARCH)) {
-        std::cerr << "[solveCBStance] failed." << std::endl;
-        return false;
+        if (!solveContactIK(param, std::vector<std::shared_ptr<Contact>>{}, guidePath[i].second, nominals, IKState::DETACH_SEARCH)) {
+          std::cerr << "[solveCBStance] failed." << std::endl;
+          return false;
+        }
       }
       std::vector<double> frame;
       global_inverse_kinematics_solver::link2Frame(param->variables, frame);

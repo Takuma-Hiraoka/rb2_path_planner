@@ -248,8 +248,8 @@ namespace wholebodycontact_locomotion_planner_sample{
     {
       std::vector<std::string> rarm{"RARM_SHOULDER_R", "RARM_ELBOW", "RARM_WRIST_R"};
       std::vector<std::string> larm{"LARM_SHOULDER_R", "LARM_ELBOW", "LARM_WRIST_R"};
-      std::vector<std::string> rleg{"RLEG_HIP_Y", "RLEG_KNEE"};
-      std::vector<std::string> lleg{"LLEG_HIP_Y", "LLEG_KNEE"};
+      std::vector<std::string> rleg{"RLEG_HIP_Y", "RLEG_KNEE", "RLEG_ANKLE_R"};
+      std::vector<std::string> lleg{"LLEG_HIP_Y", "LLEG_KNEE", "LLEG_ANKLE_R"};
       std::vector<std::string> torso{"WAIST", "WAIST_R", "CHEST"};
 
       std::vector<std::vector<std::string> > pairs;
@@ -318,7 +318,7 @@ namespace wholebodycontact_locomotion_planner_sample{
         if (it->first==param->robot->link(i)->name()) constraint->setContactPoints(it->second, 0.05, 16);
       }
       constraint->contactSearchLimit() = 0.01; // 大きすぎると振動してしまうので注意
-      constraint->precision() = 0.02;
+      constraint->precision() = 0.03;
       constraint->contactWeight() = 1;
       constraint->normalGradientDistance() = 0.03;
       constraint->weight() << 1.0, 1.0, 1.0, 0.0, 0.0, 0.0; // rollやpitchを正確にすると、足裏の端で接触点探索の結果足の甲にいったときに、ほぼ最短接触点であるために接触点は変化せず、無理につま先立ちしようとしてIKがとけない、ということになる.

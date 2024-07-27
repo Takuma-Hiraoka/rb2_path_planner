@@ -124,7 +124,8 @@ namespace wholebodycontact_locomotion_planner{
               }
             }
           } else if ((ikState==IKState::DETACH) ||
-                     (ikState==IKState::ATTACH)) {
+                     (ikState==IKState::ATTACH) ||
+                     (ikState==IKState::DETACH_SEARCH)) {
             constraint->A_localpos() = nextContacts[i]->localPose1;
           } else {
             std::cerr << "Undefined IKState !!" << std::endl;
@@ -132,7 +133,8 @@ namespace wholebodycontact_locomotion_planner{
           constraint->B_link() = nextContacts[i]->link2;
           constraint->B_localpos() = nextContacts[i]->localPose2;
           if ((ikState==IKState::DETACH) ||
-              (ikState==IKState::DETACH_FIXED)) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.03);
+              (ikState==IKState::DETACH_FIXED) ||
+              (ikState==IKState::DETACH_SEARCH)) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.03);
           if ((ikState==IKState::ATTACH) ||
               (ikState==IKState::ATTACH_FIXED) ||
               (ikState==IKState::SLIDE)) calcIgnoreBoundingBox(param->constraints, nextContacts[i], 3);
@@ -140,6 +142,14 @@ namespace wholebodycontact_locomotion_planner{
           constraint->eval_localR() = nextContacts[i]->localPose2.rotation();
           constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 0.01;
           constraints2.push_back(constraint);
+          if (ikState == IKState::DETACH_SEARCH) { // stance探索のため、接触しているものとしてSCFRを作る
+            poses.push_back(nextContacts[i]->localPose2);
+            As.emplace_back(0,6);
+            bs.emplace_back(0);
+            Cs.push_back(nextContacts[i]->C);
+            dls.push_back(nextContacts[i]->dl);
+            dus.push_back(nextContacts[i]->du);
+          }
           if (ikState==IKState::SLIDE) {
             for (int j=0; j<stopContacts.size(); j++) {
               if (nextContacts[i]->name == stopContacts[j]->name) {
@@ -193,6 +203,7 @@ namespace wholebodycontact_locomotion_planner{
          (ikState==IKState::DETACH_FIXED) ||
          (ikState==IKState::ATTACH) ||
          (ikState==IKState::ATTACH_FIXED) ||
+         (ikState==IKState::DETACH_SEARCH) ||
          (ikState==IKState::SLIDE)) // 干渉判定ができないので触れるときはgikのpathが実行不可能なものが出てくる可能性があるが、単に姿勢だけを出す目的でのみ使う. 接触ローカル座標系の位置姿勢が変わらないのでめり込むような姿勢は出てきにくいはず.
         && param->useSwingGIK){
       std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > gikConstraints{constraints0, constraints1};
@@ -240,7 +251,7 @@ namespace wholebodycontact_locomotion_planner{
         }
       }
     }
-    if (((ikState==IKState::SWING) || (ikState == IKState::CONTACT_SEARCH)) && solved) {
+    if ((ikState==IKState::SWING) || (ikState == IKState::CONTACT_SEARCH)) {
       param->pikParam.dqWeight.resize(6+param->robot->numJoints());
       param->gikParam.pikParam.dqWeight.resize(6+param->robot->numJoints());
       for (int i=0; i<nextContacts.size(); i++) {
