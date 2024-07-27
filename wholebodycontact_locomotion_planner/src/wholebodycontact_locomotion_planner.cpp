@@ -400,8 +400,9 @@ namespace wholebodycontact_locomotion_planner{
         // currentContactを更新
         for (int i=0; i<currentContact.size(); i++) {
           if (currentContact[i]->name == guidePath[idx].second[moveContactPathId]->name) {
-            currentContact[i]->localPose1 = guidePath[idx].second[moveContactPathId]->localPose1;
-            currentContact[i]->localPose2 = currentContact[i]->link1->T() * currentContact[i]->localPose1;
+            currentContact[i]->localPose1.translation() = (idx==pathId) ? currentContact[i]->localPose1.translation() : guidePath[idx].second[moveContactPathId]->localPose1.translation(); // idx==pathIdのときは接触ローカル座標を探索されたものに変えていない
+            currentContact[i]->localPose1.linear() = currentContact[i]->link1->R().transpose() * guidePath[idx].second[moveContactPathId]->localPose2.linear();
+            currentContact[i]->localPose2 = guidePath[idx].second[moveContactPathId]->localPose2; // localPose2はSCFRの計算にも使われ、特にZ方向が傾いてはいけない. localPose1は接触点探索時に傾きを考慮しない結果傾いているため、localPose1をlocalPose2に合わせる
           }
         }
 

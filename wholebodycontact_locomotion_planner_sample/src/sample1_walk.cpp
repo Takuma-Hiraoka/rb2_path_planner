@@ -54,12 +54,12 @@ namespace wholebodycontact_locomotion_planner_sample{
     // param->gikParam.pikParam.viewer = viewer;
     param->useSwingGIK = true;
     param->pikParam.dqWeight = std::vector<double>(6+param->robot->numJoints(), 1.0);
-    param->pikParam.dqWeight[0] = 3.0;
-    param->pikParam.dqWeight[1] = 3.0;
-    param->pikParam.dqWeight[2] = 3.0;
-    param->pikParam.dqWeight[3] = 3.0;
-    param->pikParam.dqWeight[4] = 3.0;
-    param->pikParam.dqWeight[5] = 3.0;
+    // param->pikParam.dqWeight[0] = 3.0;
+    // param->pikParam.dqWeight[1] = 3.0;
+    // param->pikParam.dqWeight[2] = 3.0;
+    // param->pikParam.dqWeight[3] = 3.0;
+    // param->pikParam.dqWeight[4] = 3.0;
+    // param->pikParam.dqWeight[5] = 3.0;
 
     cnoid::Isometry3 goal = param->robot->rootLink()->T();
     goal.translation()[0] += 0.2;

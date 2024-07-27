@@ -28,6 +28,7 @@ namespace wholebodycontact_locomotion_planner_sample{
 
     param->debugLevel=0;
     param->viewer = viewer;
+    param->maxSubGoalIdx = 1;
     param->gikRootParam.range = 0.5;
     param->gikRootParam.viewer = viewer;
     param->gikRootParam.drawLoop = 1;
@@ -39,8 +40,23 @@ namespace wholebodycontact_locomotion_planner_sample{
     param->toParam.shortcut = true;
     //    param->gikRootParam.pikParam.debugLevel = 1;
     param->pikParam.viewer = viewer;
-    param->pikParam.debugLevel = 3;
+    param->pikParam.debugLevel = 0;
     param->pikParam.viewMilliseconds = -1;
+    param->gikParam.viewer = viewer;
+    param->gikParam.threads = param->gikRootParam.threads;
+    param->gikParam.timeout = 1;
+    param->gikRootParam.goalBias = 0.2;
+    // param->gikParam.pikParam.debugLevel = 3;
+    // param->gikParam.pikParam.viewMilliseconds = -1;
+    // param->gikParam.pikParam.viewer = viewer;
+    param->useSwingGIK = true;
+    param->pikParam.dqWeight = std::vector<double>(6+param->robot->numJoints(), 1.0);
+    // param->pikParam.dqWeight[0] = 3.0;
+    // param->pikParam.dqWeight[1] = 3.0;
+    // param->pikParam.dqWeight[2] = 3.0;
+    // param->pikParam.dqWeight[3] = 3.0;
+    // param->pikParam.dqWeight[4] = 3.0;
+    // param->pikParam.dqWeight[5] = 3.0;
 
     cnoid::Isometry3 goal = param->robot->rootLink()->T();
     goal.translation()[0] += 3.3;

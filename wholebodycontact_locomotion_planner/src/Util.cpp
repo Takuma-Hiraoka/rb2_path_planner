@@ -188,7 +188,7 @@ namespace wholebodycontact_locomotion_planner{
     scfrConstraint->Cs() = Cs;
     scfrConstraint->dls() = dls;
     scfrConstraint->dus() = dus;
-    constraints1.push_back(scfrConstraint);
+    constraints0.push_back(scfrConstraint);
 
     bool solved;
     std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0, constraints1, constraints2, nominals};

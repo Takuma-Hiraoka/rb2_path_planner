@@ -248,8 +248,8 @@ namespace wholebodycontact_locomotion_planner_sample{
     {
       std::vector<std::string> rarm{"RARM_SHOULDER_R", "RARM_ELBOW", "RARM_WRIST_R"};
       std::vector<std::string> larm{"LARM_SHOULDER_R", "LARM_ELBOW", "LARM_WRIST_R"};
-      std::vector<std::string> rleg{"RLEG_HIP_Y", "RLEG_KNEE", "RLEG_ANKLE_R"};
-      std::vector<std::string> lleg{"LLEG_HIP_Y", "LLEG_KNEE", "LLEG_ANKLE_R"};
+      std::vector<std::string> rleg{"RLEG_HIP_Y", "RLEG_KNEE"/*, "RLEG_ANKLE_R"*/};
+      std::vector<std::string> lleg{"LLEG_HIP_Y", "LLEG_KNEE"/*, "LLEG_ANKLE_R"*/};
       std::vector<std::string> torso{"WAIST", "WAIST_R", "CHEST"};
 
       std::vector<std::vector<std::string> > pairs;
