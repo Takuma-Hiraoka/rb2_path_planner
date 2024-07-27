@@ -30,6 +30,7 @@ namespace wholebodycontact_locomotion_planner_sample{
     param->viewer = viewer;
     param->maxSubGoalIdx = 1;
     param->gikRootParam.range = 0.5;
+    param->gikRootParam.delta = 0.2;
     param->gikRootParam.viewer = viewer;
     param->gikRootParam.drawLoop = 1;
     param->gikRootParam.debugLevel = 1;
@@ -38,7 +39,9 @@ namespace wholebodycontact_locomotion_planner_sample{
     param->gikRootParam.threads = 10;
     param->OptimizeTrajectory = true; // 軌道最適化を行うと外れ値的な接触や接触の数自体を減らせる
     param->toParam.shortcut = true;
-    //    param->gikRootParam.pikParam.debugLevel = 1;
+    // param->gikRootParam.pikParam.viewer = viewer;
+    // param->gikRootParam.pikParam.viewMilliseconds = -1;
+    // param->gikRootParam.pikParam.debugLevel = 3;
     param->pikParam.viewer = viewer;
     param->pikParam.debugLevel = 0;
     param->pikParam.viewMilliseconds = -1;

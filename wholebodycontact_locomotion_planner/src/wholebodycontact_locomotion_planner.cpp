@@ -82,6 +82,20 @@ namespace wholebodycontact_locomotion_planner{
       constraints1.push_back(param->constraints[i]);
     }
 
+    std::shared_ptr<ik_constraint2::ORConstraint> conditions = std::make_shared<ik_constraint2::ORConstraint>();
+    for(std::unordered_map<std::string, std::shared_ptr<Mode> >::const_iterator it=param->modes.begin(); it!=param->modes.end(); it++){
+      conditions->children().push_back(it->second->generateCondition(environment, param->robot));
+    }
+    constraints1.push_back(conditions);
+    constraints.push_back(constraints1);
+
+    for (int i=0; i<constraints.size(); i++) {
+      for (int j=0; j<constraints[i].size(); j++) {
+        constraints[i][j]->debugLevel() = 0;
+        constraints[i][j]->updateBounds();
+      }
+    }
+
     // まず今触れている接触を僅かに離す. 初期状態をsatisfiedにするため.
     {
       std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > breakConstraints;
@@ -96,30 +110,17 @@ namespace wholebodycontact_locomotion_planner{
         constraint->eval_link() = nullptr;
         breakConstraints.push_back(constraint);
       }
+
       std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > preConstraints{constraints0, constraints1, breakConstraints};
       std::vector<std::shared_ptr<prioritized_qp_base::Task> > prevTasks;
       prioritized_inverse_kinematics_solver2::solveIKLoop(param->variables,
                                                           preConstraints,
                                                           prevTasks,
-                                                          param->gikRootParam.pikParam
+                                                          param->pikParam
                                                           );
     }
 
-    std::shared_ptr<ik_constraint2::ORConstraint> conditions = std::make_shared<ik_constraint2::ORConstraint>();
-    for(std::unordered_map<std::string, std::shared_ptr<Mode> >::const_iterator it=param->modes.begin(); it!=param->modes.end(); it++){
-      conditions->children().push_back(it->second->generateCondition(environment, param->robot));
-    }
-    constraints1.push_back(conditions);
-    constraints.push_back(constraints1);
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > rejections{conditions};
-
-    for (int i=0; i<constraints.size(); i++) {
-      for (int j=0; j<constraints[i].size(); j++) {
-        constraints[i][j]->debugLevel() = 0;
-        constraints[i][j]->updateBounds();
-      }
-    }
-
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > goals;
     {
       std::shared_ptr<ik_constraint2::PositionConstraint> goal_ = std::make_shared<ik_constraint2::PositionConstraint>();
