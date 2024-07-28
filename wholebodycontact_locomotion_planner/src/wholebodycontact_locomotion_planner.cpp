@@ -106,7 +106,7 @@ namespace wholebodycontact_locomotion_planner{
         constraint->A_localpos() = param->currentContactPoints[i]->localPose1;
         constraint->B_link() = param->currentContactPoints[i]->link2;
         constraint->B_localpos() = param->currentContactPoints[i]->localPose2;
-        constraint->B_localpos().translation() += param->currentContactPoints[i]->localPose1.linear() * cnoid::Vector3(0,0,0.02); // 0.02だけ離す
+        constraint->B_localpos().translation() += param->currentContactPoints[i]->localPose1.linear() * cnoid::Vector3(0,0,0.03); // 0.03だけ離す
         constraint->eval_link() = nullptr;
         breakConstraints.push_back(constraint);
       }
@@ -119,7 +119,6 @@ namespace wholebodycontact_locomotion_planner{
                                                           param->pikParam
                                                           );
     }
-
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > rejections{conditions};
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > goals;
     {
@@ -342,7 +341,7 @@ namespace wholebodycontact_locomotion_planner{
             break;
           }
         }
-        idx--;
+        idx = std::min(idx, subgoalIdQueue.back());
         if(idx > pathId) { // detach-attachで一つでも進むことができる場合. TODO 解けないケースの対処法
 
           global_inverse_kinematics_solver::frame2Link(lastLandingFrame, param->variables);
@@ -381,9 +380,9 @@ namespace wholebodycontact_locomotion_planner{
 
             std::vector<double> frame;
             global_inverse_kinematics_solver::link2Frame(param->variables, frame);
-            outputPath.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (frame, currentContact));
+            path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (frame, currentContact));
           }
-          idx--;
+          idx = std::min(idx, subgoalIdQueue.back());
           // TODO
           if(idx > pathId) {
           } else { // detach-attachでもslideでも動けない
@@ -392,6 +391,7 @@ namespace wholebodycontact_locomotion_planner{
           }
         }
 
+        outputPath.insert(outputPath.end(), path.begin(), path.end());
         if(param->debugLevel >= 3){
           if(param->viewer){
             param->viewer->drawObjects();
@@ -432,7 +432,6 @@ namespace wholebodycontact_locomotion_planner{
           }
         }
 
-        outputPath.insert(outputPath.end(), path.begin(), path.end());
       } // maxContactIter
       // 接触の増加・減少処理
       if (pathId==guidePath.size()-1) { // 計画完了

@@ -294,6 +294,7 @@ namespace wholebodycontact_locomotion_planner{
     for (int i=0; i<constraints.size(); i++) {
       if (typeid(*(constraints[i]))==typeid(ik_constraint2_distance_field::DistanceFieldCollisionConstraint)) {
         if (std::find(targetLinks.begin(), targetLinks.end(), std::static_pointer_cast<ik_constraint2::CollisionConstraint>(constraints[i])->A_link()) != targetLinks.end()) {
+          if (std::static_pointer_cast<ik_constraint2::CollisionConstraint>(constraints[i])->A_link() == contact->link1) continue; // この関数が呼ばれるのはsolveContactIK中で、接触リンクそのもののcollisionConstraintはそもそもconstraintに入っていない. よってcontactと一致するものはどのみちconstraintに入らないが、下と仕様をそろえるため.
           ik_constraint2_distance_field::DistanceFieldCollisionConstraint::BoundingBox ignoreBoundingBox;
           ignoreBoundingBox.parentLink = contact->link1;
           ignoreBoundingBox.localPose.translation() = contact->bbx.center();
@@ -325,6 +326,7 @@ namespace wholebodycontact_locomotion_planner{
 
     for (int i=0; i<constraints.size(); i++) {
       if (std::find(targetLinks.begin(), targetLinks.end(), constraints[i]->A_link()) != targetLinks.end()) {
+        if (constraints[i]->A_link() == contact->link1) continue; // この関数が呼ばれるのはgenerateCondition中で、reachabilityConstraintで足裏が地面に触れるときに脛も触れるとされては困るため. よってcontactと一致するものは入れなくて良い
         ik_constraint2_distance_field::DistanceFieldCollisionConstraint::BoundingBox ignoreBoundingBox;
         ignoreBoundingBox.parentLink = contact->link1;
         ignoreBoundingBox.localPose.translation() = contact->bbx.center();
