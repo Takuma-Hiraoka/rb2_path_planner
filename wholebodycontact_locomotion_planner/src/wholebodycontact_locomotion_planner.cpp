@@ -260,7 +260,7 @@ namespace wholebodycontact_locomotion_planner{
       // 接触リンクが同じで接触面が異なる場合も、はじめのdetach-attachで遷移可能.
       int nextId;
       bool change = false;
-      for (nextId=pathId+1;nextId<guidePath.size() && !change && nextId<pathId + param->maxSubGoalIdx;nextId++) {
+      for (nextId=pathId+1;nextId<guidePath.size() && !change && nextId<=pathId + param->maxSubGoalIdx;nextId++) {
         if(currentContact.size() != guidePath[nextId].second.size()) change = true;
         for (int i=0; i<currentContact.size(); i++) {
           if (currentContact[i]->name != guidePath[nextId].second[i]->name) {
@@ -273,9 +273,9 @@ namespace wholebodycontact_locomotion_planner{
         std::cerr << "[solveWBLP] current pathId : " << pathId << ". nextId :  " << nextId << std::endl;
       }
 
-      // nextId-1になるまで、離れているものから順に近づけていく
+      // nextId-1(nextId++するので)になるまで、離れているものから順に近づけていく
       // 離れているものをできる限り近づける(guide path無視)と、スタックする恐れがある
-      std::vector<int> subgoalIdQueue = std::vector<int>{nextId-1};
+      std::vector<int> subgoalIdQueue = std::vector<int>{change ? nextId : nextId-1};
       std::vector<std::shared_ptr<Contact> > moveCandidate = currentContact;
       std::vector<std::vector<std::shared_ptr<Contact> > > moveCandidateQueue; // 複数接触が同じidまで進む場合、複数Contactを同時にCandidateに追加するため.
       for (int iter = 0; iter<param->maxContactIter;iter++) {
@@ -343,7 +343,7 @@ namespace wholebodycontact_locomotion_planner{
           }
         }
         idx--;
-        if(idx >= pathId) { // detach-attachで一つでも進むことができる場合. idx==pathIdのときは動いていないが、スタックしているときにIKを解くことを繰り返すことにより先にすすめることがある. TODO 解けないケースの対処法
+        if(idx > pathId) { // detach-attachで一つでも進むことができる場合. TODO 解けないケースの対処法
 
           global_inverse_kinematics_solver::frame2Link(lastLandingFrame, param->variables);
           param->robot->calcForwardKinematics(false);
@@ -385,7 +385,7 @@ namespace wholebodycontact_locomotion_planner{
           }
           idx--;
           // TODO
-          if(idx >= pathId) {
+          if(idx > pathId) {
           } else { // detach-attachでもslideでも動けない
             std::cerr << "cannot move contact" << std::endl;
             return false;
@@ -400,7 +400,7 @@ namespace wholebodycontact_locomotion_planner{
         // currentContactを更新
         for (int i=0; i<currentContact.size(); i++) {
           if (currentContact[i]->name == guidePath[idx].second[moveContactPathId]->name) {
-            currentContact[i]->localPose1.translation() = (idx==pathId) ? currentContact[i]->localPose1.translation() : guidePath[idx].second[moveContactPathId]->localPose1.translation(); // idx==pathIdのときは接触ローカル座標を探索されたものに変えていない
+            currentContact[i]->localPose1.translation() = guidePath[idx].second[moveContactPathId]->localPose1.translation();
             currentContact[i]->localPose1.linear() = currentContact[i]->link1->R().transpose() * guidePath[idx].second[moveContactPathId]->localPose2.linear();
             currentContact[i]->localPose2 = guidePath[idx].second[moveContactPathId]->localPose2; // localPose2はSCFRの計算にも使われ、特にZ方向が傾いてはいけない. localPose1は接触点探索時に傾きを考慮しない結果傾いているため、localPose1をlocalPose2に合わせる
           }
@@ -517,7 +517,6 @@ namespace wholebodycontact_locomotion_planner{
             }
           }
         }
-        pathId++; // 接触の増加・減少を行った
       }
     }
     return true;

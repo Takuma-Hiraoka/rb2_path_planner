@@ -143,6 +143,9 @@ namespace wholebodycontact_locomotion_planner{
           constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 0.01;
           constraints2.push_back(constraint);
           if (ikState == IKState::DETACH_SEARCH) { // stance探索のため、接触しているものとしてSCFRを作る
+            constraint->weight()[3] = 0.0;
+            constraint->weight()[4] = 0.0;
+            constraint->weight()[5] = 0.0;
             poses.push_back(nextContacts[i]->localPose2);
             As.emplace_back(0,6);
             bs.emplace_back(0);
