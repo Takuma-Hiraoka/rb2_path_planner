@@ -51,14 +51,14 @@ namespace wholebodycontact_locomotion_planner_sample{
     // "RLEG_JOINT3",
     // "RLEG_JOINT4",
     "RLEG_JOINT5",
-    // "HANDBASE_L",
+    "HANDBASE_L",
     // "L_THUMB_JOINT0",
     // "L_THUMB_JOINT1",
     // "L_INDEX_JOINT0",
     // "L_INDEX_JOINT1",
     // "L_MIDDLE_JOINT0",
     // "L_LOCK_JOINT0",
-    // "HANDBASE_R",
+    "HANDBASE_R",
     // "R_THUMB_JOINT0",
     // "R_THUMB_JOINT1",
     // "R_INDEX_JOINT0",
@@ -93,6 +93,18 @@ namespace wholebodycontact_locomotion_planner_sample{
     {
       param->variables.push_back(param->robot->rootLink());
       for(int i=0;i<param->robot->numJoints();i++){
+        if ((param->robot->joint(i)->name() == "L_THUMB_JOINT0") ||
+            (param->robot->joint(i)->name() == "L_THUMB_JOINT1") ||
+            (param->robot->joint(i)->name() == "L_INDEX_JOINT0") ||
+            (param->robot->joint(i)->name() == "L_INDEX_JOINT1") ||
+            (param->robot->joint(i)->name() == "L_MIDDLE_JOINT0") ||
+            (param->robot->joint(i)->name() == "L_LOCK_JOINT0") ||
+            (param->robot->joint(i)->name() == "R_THUMB_JOINT0") ||
+            (param->robot->joint(i)->name() == "R_THUMB_JOINT1") ||
+            (param->robot->joint(i)->name() == "R_INDEX_JOINT0") ||
+            (param->robot->joint(i)->name() == "R_INDEX_JOINT1") ||
+            (param->robot->joint(i)->name() == "R_MIDDLE_JOINT0") ||
+            (param->robot->joint(i)->name() == "R_LOCK_JOINT0")) continue;
         param->variables.push_back(param->robot->joint(i));
       }
     }
@@ -179,6 +191,28 @@ namespace wholebodycontact_locomotion_planner_sample{
     }
     // environmental collision
     for (int i=0; i<param->robot->numLinks(); i++) {
+      if ((param->robot->link(i)->name() == "LLEG_JOINT3") || // JOINT3は膝下で手先が触れるなら本来は触れている
+          (param->robot->link(i)->name() == "RLEG_JOINT3") ||
+          (param->robot->link(i)->name() == "LLEG_JOINT4") || // JOINT4は足首内側に入り込んだリンクなので考慮しなくて良い
+          (param->robot->link(i)->name() == "RLEG_JOINT4") ||
+(param->robot->link(i)->name() == "LARM_JOINT5") || // JOINT5は前腕で手先が触れるなら本来は触れている
+          (param->robot->link(i)->name() == "RARM_JOINT5") ||
+          (param->robot->link(i)->name() == "LARM_JOINT6") || // JOINT6は手首内側に入り込んだリンクなので考慮しなくて良い
+          (param->robot->link(i)->name() == "RARM_JOINT6") ||
+          (param->robot->link(i)->name() == "LARM_JOINT7") || // JOINT7とHANDBASEの間はfixed jointなので回避しようがない
+          (param->robot->link(i)->name() == "RARM_JOINT7") ||
+          (param->robot->link(i)->name() == "L_THUMB_JOINT0") ||
+          (param->robot->link(i)->name() == "L_THUMB_JOINT1") ||
+          (param->robot->link(i)->name() == "L_INDEX_JOINT0") ||
+          (param->robot->link(i)->name() == "L_INDEX_JOINT1") ||
+          (param->robot->link(i)->name() == "L_MIDDLE_JOINT0") ||
+          (param->robot->link(i)->name() == "L_LOCK_JOINT0") ||
+          (param->robot->link(i)->name() == "R_THUMB_JOINT0") ||
+          (param->robot->link(i)->name() == "R_THUMB_JOINT1") ||
+          (param->robot->link(i)->name() == "R_INDEX_JOINT0") ||
+          (param->robot->link(i)->name() == "R_INDEX_JOINT1") ||
+          (param->robot->link(i)->name() == "R_MIDDLE_JOINT0") ||
+          (param->robot->link(i)->name() == "R_LOCK_JOINT0")) continue;
       std::shared_ptr<ik_constraint2_distance_field::DistanceFieldCollisionConstraint> constraint = std::make_shared<ik_constraint2_distance_field::DistanceFieldCollisionConstraint>();
       constraint->A_link() = param->robot->link(i);
       constraint->field() = field;
