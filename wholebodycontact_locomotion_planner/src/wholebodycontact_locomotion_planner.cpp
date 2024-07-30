@@ -261,7 +261,7 @@ namespace wholebodycontact_locomotion_planner{
       bool change = false;
       for (nextId=pathId+1;nextId<guidePath.size() && !change && nextId<=pathId + param->maxSubGoalIdx;nextId++) {
         if(currentContact.size() != guidePath[nextId].second.size()) change = true;
-        for (int i=0; i<currentContact.size(); i++) {
+        for (int i=0; i<currentContact.size() && !change; i++) {
           if (currentContact[i]->name != guidePath[nextId].second[i]->name) {
             change = true;
           }
@@ -276,7 +276,7 @@ namespace wholebodycontact_locomotion_planner{
       // 離れているものをできる限り近づける(guide path無視)と、スタックする恐れがある
       std::vector<int> subgoalIdQueue = std::vector<int>{change ? nextId : nextId-1};
       std::vector<std::shared_ptr<Contact> > moveCandidate = currentContact;
-      std::vector<std::vector<std::shared_ptr<Contact> > > moveCandidateQueue; // 複数接触が同じidまで進む場合、複数Contactを同時にCandidateに追加するため.
+      std::vector<std::vector<std::shared_ptr<Contact> > > moveCandidateQueue; // 0 : subgoalIdQueueに対応. そこまで達している. 1 : contact. 複数接触が同じidまで進む場合、複数Contactを同時にCandidateに追加するため.
       for (int iter = 0; iter<param->maxContactIter;iter++) {
         if (param->debugLevel >= 2) {
           std::cerr << "[solveWBLP] current pathId : " << pathId << ". contact iter :  " << iter << ". moveCandidate : [";
@@ -305,8 +305,26 @@ namespace wholebodycontact_locomotion_planner{
             }
           }
         }
+        std::vector<int> moveContactIds; // 残りどのcontactが残っているか
+        std::vector<std::string> moveContactLinks; // IKを解く際の目標
+        // 手を動かした後腰を動かす場合、肩が戻ることになる
+        // 今回動かすmoveContactsを求める
+        {
+          std::vector<cnoid::LinkPtr> targetLinks;
+          calcLevelLinks(moveCandidate[moveContactId]->link1, param->moveContactsLevel, targetLinks);
+          for (int i=0; i<moveCandidate.size(); i++) {
+            if (std::find(targetLinks.begin(), targetLinks.end(), moveCandidate[i]->link1) != targetLinks.end()) moveContactIds.push_back(i);
+          }
+          for (int i=0; i<guidePath[pathId].second.size(); i++) {
+            if (std::find(targetLinks.begin(), targetLinks.end(), guidePath[pathId].second[i]->link1) != targetLinks.end()) moveContactLinks.push_back(guidePath[pathId].second[i]->name);
+          } // 接触の増加・減少がある場合最後のguidePathの大きさが異なる. IKを解く際の目標はpathIdにすでにあるもののみ
+        }
+
         if (param->debugLevel >= 2) {
           std::cerr << "[solveWBLP] target move Contact : " << moveCandidate[moveContactId]->name << std::endl;
+          std::cerr << "[solveWBLP] move Contacts : ";
+          for (int i=0; i<moveContactLinks.size(); i++) std::cerr << moveContactLinks[i] << " ";
+          std::cerr << std::endl;
         }
         // 選ばれたcontactだけ、detach-attachでIKが解けなくなるまでguidePathを進める
         std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > > path;
@@ -319,10 +337,13 @@ namespace wholebodycontact_locomotion_planner{
           frame2Nominals(guidePath[idx].first, param->variables, nominals);
           std::vector<double> frame;
           std::vector<cnoid::Isometry3> prevNextContactLocalPose1s;
-          prevNextContactLocalPose1s.push_back(guidePath[idx].second[moveContactPathId]->localPose1);
-          if (!solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, nominals, idx==pathId ? IKState::DETACH_FIXED : IKState::DETACH)) break;
+          std::vector<std::shared_ptr<Contact> > moveContact;
+          for (int i=0; i<guidePath[idx].second.size(); i++) {
+            if (std::find(moveContactLinks.begin(), moveContactLinks.end(), guidePath[idx].second[i]->name) != moveContactLinks.end()) moveContact.push_back(guidePath[idx].second[i]);
+          }
+          if (!solveContactIK(param, currentContact, moveContact, nominals, idx==pathId ? IKState::DETACH_FIXED : IKState::DETACH)) break;
           global_inverse_kinematics_solver::link2Frame(param->variables, frame);
-          if (solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, nominals, idx==pathId ? IKState::ATTACH_FIXED : IKState::ATTACH)) { // 着地も可能
+          if (solveContactIK(param, currentContact, moveContact, nominals, idx==pathId ? IKState::ATTACH_FIXED : IKState::ATTACH)) { // 着地も可能
             path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > >(frame, currentContact)); // TODO currentContactからmoveContactを除くこと
             global_inverse_kinematics_solver::link2Frame(param->variables, lastLandingFrame);
             global_inverse_kinematics_solver::frame2Link(frame, param->variables);
@@ -336,8 +357,6 @@ namespace wholebodycontact_locomotion_planner{
               getchar();
             }
           } else {
-            // 探索したときに次の接触のローカル座標を変更しているのでもとに戻す
-            guidePath[idx].second[moveContactPathId]->localPose1 = prevNextContactLocalPose1s[0];
             break;
           }
         }
@@ -363,12 +382,12 @@ namespace wholebodycontact_locomotion_planner{
           for (idx=pathId; idx<=subgoalIdQueue.back(); idx++) {
             std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
             frame2Nominals(guidePath[idx].first, param->variables, nominals);
-            for (int i=0;i<currentContact.size();i++) { // detach-attachのときはattachでguidePathのcontactのlocalPose1を書き換える. slideではここでcurrentContactに置き換える
-              if (currentContact[i]->name == guidePath[idx].second[moveContactPathId]->name) {
-                guidePath[idx].second[moveContactPathId]->localPose1 = currentContact[i]->localPose1;
-              }
+            std::vector<std::shared_ptr<Contact> > moveContact;
+            for (int i=0; i<guidePath[idx].second.size(); i++) {
+              if (std::find(moveContactLinks.begin(), moveContactLinks.end(), guidePath[idx].second[i]->name) != moveContactLinks.end()) moveContact.push_back(guidePath[idx].second[i]);
             }
-            if (!solveContactIK(param, currentContact, std::vector<std::shared_ptr<Contact> >{guidePath[idx].second[moveContactPathId]}, nominals, IKState::SLIDE)) break;
+
+            if (!solveContactIK(param, currentContact, moveContact, nominals, IKState::SLIDE)) break;
 
             if(param->debugLevel >= 3){
               if(param->viewer){
@@ -399,22 +418,37 @@ namespace wholebodycontact_locomotion_planner{
         }
         // currentContactを更新
         for (int i=0; i<currentContact.size(); i++) {
-          if (currentContact[i]->name == guidePath[idx].second[moveContactPathId]->name) {
-            currentContact[i]->localPose1.translation() = guidePath[idx].second[moveContactPathId]->localPose1.translation();
-            currentContact[i]->localPose1.linear() = currentContact[i]->link1->R().transpose() * guidePath[idx].second[moveContactPathId]->localPose2.linear();
-            currentContact[i]->localPose2 = guidePath[idx].second[moveContactPathId]->localPose2; // localPose2はSCFRの計算にも使われ、特にZ方向が傾いてはいけない. localPose1は接触点探索時に傾きを考慮しない結果傾いているため、localPose1をlocalPose2に合わせる
+          if (std::find(moveContactLinks.begin(), moveContactLinks.end(), currentContact[i]->name) == moveContactLinks.end()) continue; // このiterでは動かさなかった
+          for (int j=0; j<guidePath[idx].second.size(); j++) {
+            if (currentContact[i]->name == guidePath[idx].second[j]->name) {
+              currentContact[i]->localPose1.translation() = guidePath[idx].second[j]->localPose1.translation();
+              currentContact[i]->localPose1.linear() = currentContact[i]->link1->R().transpose() * guidePath[idx].second[j]->localPose2.linear();
+              currentContact[i]->localPose2.translation() = currentContact[i]->link1->p() + currentContact[i]->link1->R() * currentContact[i]->localPose1.translation();
+              currentContact[i]->localPose2.linear() = guidePath[idx].second[j]->localPose2.linear(); // localPose2はSCFRの計算にも使われ、特にZ方向が傾いてはいけない. localPose1は接触点探索時に傾きを考慮しない結果傾いているため、localPose1をlocalPose2に合わせる
+            }
           }
         }
 
+        if(param->debugLevel >= 2){
+          std::cerr << "[solveWBLP] proceed : " << idx << std::endl;
+        }
         // subgoalIdQueueとmoveCandidateの更新
         if (idx == subgoalIdQueue.back()) { // 目標の接触状態に達した
-          if(moveCandidate.size() > 1) { // まだsubgoalIdQueueに達していない接触がある
-            if (moveCandidateQueue.size() != 0) {
-              moveCandidateQueue.back().push_back(moveCandidate[moveContactId]);
-            } else {
-              moveCandidateQueue.push_back(std::vector<std::shared_ptr<Contact> >{moveCandidate[moveContactId]});
+          if(moveCandidate.size() > moveContactIds.size()) { // まだsubgoalIdQueueに達していない接触がある
+            std::vector<std::shared_ptr<Contact> > moveContacts;
+            for(int i=0; i<moveContactIds.size(); i++) {
+              moveContacts.push_back(moveCandidate[moveContactIds[i]]);
             }
-            moveCandidate.erase(moveCandidate.begin() + moveContactId);
+            if (moveCandidateQueue.size() != 0) {
+              for (int i=0; i<moveContacts.size(); i++) {
+                if (std::find(moveCandidateQueue.back().begin(), moveCandidateQueue.back().end(), moveContacts[i]) == moveCandidateQueue.back().end()) moveCandidateQueue.back().push_back(moveCandidate[moveContactIds[i]]);
+              }
+            } else {
+              moveCandidateQueue.push_back(moveContacts);
+            }
+            for (int i=0;i<moveContacts.size(); i++) {
+              moveCandidate.erase(std::find(moveCandidate.begin(), moveCandidate.end(), moveContacts[i]));
+            }
           } else { // 全ての接触がsubgoalIdQueueに達している
             subgoalIdQueue.pop_back();
             moveCandidate.insert(moveCandidate.end(), moveCandidateQueue.back().begin(), moveCandidateQueue.back().end());
@@ -424,8 +458,14 @@ namespace wholebodycontact_locomotion_planner{
         } else { // 目標の接触状態に達しなかった
           if (moveCandidate.size() > 1) {// 動かしていない他の接触を動かして、この接触状態を目指す.
             subgoalIdQueue.push_back(idx);
-            moveCandidateQueue.push_back(std::vector<std::shared_ptr<Contact> >{moveCandidate[moveContactId]});
-            moveCandidate.erase(moveCandidate.begin() + moveContactId);
+            std::vector<std::shared_ptr<Contact> > moveContacts;
+            for(int i=0; i<moveContactIds.size(); i++) {
+              moveContacts.push_back(moveCandidate[moveContactIds[i]]);
+            }
+            moveCandidateQueue.push_back(moveContacts);
+            for (int i=0;i<moveContacts.size(); i++) {
+              moveCandidate.erase(std::find(moveCandidate.begin(), moveCandidate.end(), moveContacts[i]));
+            }
           } else { // 全ての接触を動かしたのに、pathを一つも進めなかった
             std::cerr << "no movable contact exist" << std::endl;
             return false;
@@ -440,6 +480,7 @@ namespace wholebodycontact_locomotion_planner{
         }
         break;
       } else {
+        // TODO 同時接触は必要？
         std::vector<std::shared_ptr<Contact> > detachContact;
         for (int i=0;i<currentContact.size();i++) {
           bool detach = true;
@@ -488,13 +529,10 @@ namespace wholebodycontact_locomotion_planner{
           // 接触を追加する
           std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
           frame2Nominals(guidePath[nextId].first, param->variables, nominals);
-          if(!solveContactIK(param, currentContact, attachContact, nominals, IKState::DETACH)) {
+          if(!solveContactIK(param, currentContact, attachContact, nominals, IKState::SWING)) {
             std::cerr << "cannot pre attach contact" << std::endl;
             break;
           }
-
-          // currentContactを更新
-          currentContact.insert(currentContact.end(), attachContact.begin(), attachContact.end());
 
           std::vector<double> frame;
           global_inverse_kinematics_solver::link2Frame(param->variables, frame);
@@ -509,6 +547,13 @@ namespace wholebodycontact_locomotion_planner{
             break;
           }
           global_inverse_kinematics_solver::link2Frame(param->variables, frame);
+          // currentContactを更新
+          for (int i=0; i<attachContact.size(); i++) {
+            attachContact[i]->localPose1.linear() = attachContact[i]->link1->R().transpose() * attachContact[i]->localPose2.linear();
+            attachContact[i]->localPose2.translation() = attachContact[i]->link1->p() + attachContact[i]->link1->R() * attachContact[i]->localPose1.translation(); // localPose2はSCFRの計算にも使われ、特にZ方向が傾いてはいけない. localPose1は接触点探索時に傾きを考慮しない結果傾いているため、localPose1をlocalPose2に合わせる
+          }
+          currentContact.insert(currentContact.end(), attachContact.begin(), attachContact.end());
+
           outputPath.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (frame, currentContact)); // TODO currentContactからattachContactを除くこと
           if(param->debugLevel >= 3){
             if(param->viewer){

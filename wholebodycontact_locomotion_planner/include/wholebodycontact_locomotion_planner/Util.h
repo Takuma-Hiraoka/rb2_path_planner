@@ -24,7 +24,7 @@ namespace wholebodycontact_locomotion_planner{
                       const IKState ikState);
   void calcLevelLinks(const cnoid::LinkPtr inputLink,
                       int level, // input
-                      std::vector<cnoid::LinkPtr> targetLinks // output
+                      std::vector<cnoid::LinkPtr>& targetLinks // output
                       ); // inputLinkのlevel等親のリンクをtargetLinksとして返す.
   void calcIgnoreBoundingBox(const std::vector<std::shared_ptr<ik_constraint2::IKConstraint> >& constraints,
                              const std::shared_ptr<Contact>& contact,

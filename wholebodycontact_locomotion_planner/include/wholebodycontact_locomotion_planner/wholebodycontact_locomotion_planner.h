@@ -15,6 +15,9 @@ namespace wholebodycontact_locomotion_planner{
     double expansionLength = 0.1; // contactableLinksをの凸包をこの長さだけ拡大したものをabstractRobotにする. このabstractRobotを使ってreachabilityConstraintを作ること.
     int maxSubGoalIdx = 3; // 接触が切り替わるか、maxSubGoalIdxぶん進んだ接触状態に完全に一致するように接触を定めていく. この数までは接触1つを進めるだけ進めてしまうので、大きすぎると(5,5)ならできたのに(10,5)ができずに計画失敗となってしまう.
     int maxContactIter = 1000; // 接触一つを動かしていく上限回数
+    int moveContactsLevel = 3; // solveWBLP時に接触の切り離し・増加を行う際に、対象とするcontact linkのmoveContactLelvel等親までのcontact linkを同時に切り離し・増加する. 隣接リンクが接触しているのに片方だけを動かすのは自由度的に困難なため.
+    double positionConstraintPrecision = 1e-3; // 複数リンク接触を行う場合、収束判定を緩くしないと同時にpositionConstraintをみたすことができない
+    cnoid::Vector6 positionConstraintWeight;
     std::shared_ptr<choreonoid_viewer::Viewer> viewer = nullptr;
     cnoid::BodyPtr robot;
     std::vector<cnoid::LinkPtr> variables;
@@ -32,6 +35,7 @@ namespace wholebodycontact_locomotion_planner{
     trajectory_optimizer::TOParam toParam;
 
     WBLPParam() {
+      positionConstraintWeight << 1.0, 1.0, 1.0, 1.0, 1.0, 0.01;
       gikRootParam.range = 0.05;
       gikRootParam.delta = 0.2;
       gikRootParam.timeout = 20;

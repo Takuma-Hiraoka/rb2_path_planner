@@ -140,7 +140,8 @@ namespace wholebodycontact_locomotion_planner{
               (ikState==IKState::SLIDE)) calcIgnoreBoundingBox(param->constraints, nextContacts[i], 3);
           constraint->eval_link() = nullptr;
           constraint->eval_localR() = nextContacts[i]->localPose2.rotation();
-          constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 0.01;
+          constraint->weight() = param->positionConstraintWeight;
+          constraint->precision() = param->positionConstraintPrecision;
           constraints2.push_back(constraint);
           if (ikState == IKState::DETACH_SEARCH) { // stance探索のため、接触しているものとしてSCFRを作る
             constraint->weight()[3] = 0.0;
@@ -275,7 +276,7 @@ namespace wholebodycontact_locomotion_planner{
 
   void calcLevelLinks(const cnoid::LinkPtr inputLink,
                       int level, // input
-                      std::vector<cnoid::LinkPtr> targetLinks // output
+                      std::vector<cnoid::LinkPtr>& targetLinks // output
                       ){ // inputLinkのlevel等親のリンクをtargetLinksとして返す.
     targetLinks.clear();
     targetLinks.push_back(inputLink);

@@ -28,7 +28,7 @@ namespace wholebodycontact_locomotion_planner_sample{
     // "LARM_JOINT2",
     // "LARM_JOINT3",
     // "LARM_JOINT4",
-    // "LARM_JOINT5",
+    "LARM_JOINT5",
     // "LARM_JOINT6",
     // "LARM_JOINT7",
     // "RARM_JOINT0",
@@ -36,7 +36,7 @@ namespace wholebodycontact_locomotion_planner_sample{
     // "RARM_JOINT2",
     // "RARM_JOINT3",
     // "RARM_JOINT4",
-    // "RARM_JOINT5",
+    "RARM_JOINT5",
     // "RARM_JOINT6",
     // "RARM_JOINT7",
     // "LLEG_JOINT0",
@@ -195,8 +195,10 @@ namespace wholebodycontact_locomotion_planner_sample{
           (param->robot->link(i)->name() == "RLEG_JOINT3") ||
           (param->robot->link(i)->name() == "LLEG_JOINT4") || // JOINT4は足首内側に入り込んだリンクなので考慮しなくて良い
           (param->robot->link(i)->name() == "RLEG_JOINT4") ||
-(param->robot->link(i)->name() == "LARM_JOINT5") || // JOINT5は前腕で手先が触れるなら本来は触れている
-          (param->robot->link(i)->name() == "RARM_JOINT5") ||
+          (param->robot->link(i)->name() == "LARM_JOINT3") || // JOINT3は肘上で前腕が触れるなら本来は触れている
+          (param->robot->link(i)->name() == "RARM_JOINT3") ||
+          (param->robot->link(i)->name() == "LARM_JOINT4") || // JOINT4は肘下で前腕が触れるなら本来は触れている
+          (param->robot->link(i)->name() == "RARM_JOINT4") ||
           (param->robot->link(i)->name() == "LARM_JOINT6") || // JOINT6は手首内側に入り込んだリンクなので考慮しなくて良い
           (param->robot->link(i)->name() == "RARM_JOINT6") ||
           (param->robot->link(i)->name() == "LARM_JOINT7") || // JOINT7とHANDBASEの間はfixed jointなので回避しようがない
@@ -259,7 +261,7 @@ namespace wholebodycontact_locomotion_planner_sample{
           std::shared_ptr<ik_constraint2_distance_field::DistanceFieldCollisionConstraint> constraint = std::make_shared<ik_constraint2_distance_field::DistanceFieldCollisionConstraint>();
           constraint->A_link() = param->robot->link(i);
           constraint->field() = field;
-          constraint->tolerance() = 0.3; // ちょうど干渉すると法線ベクトルが変になることがあるので, 1回のiterationで動きうる距離よりも大きくせよ.
+          constraint->tolerance() = 0.1; // ちょうど干渉すると法線ベクトルが変になることがあるので, 1回のiterationで動きうる距離よりも大きくせよ.
           //          constraint->precision() = 0.01;
           constraint->ignoreDistance() = 0.5; // 大きく動くので、ignoreも大きくする必要がある
           //      constraint->maxError() = 0.1; // めり込んだら一刻も早く離れたい

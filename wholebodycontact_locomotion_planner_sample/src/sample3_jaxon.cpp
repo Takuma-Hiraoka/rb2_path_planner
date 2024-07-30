@@ -8,7 +8,7 @@ namespace wholebodycontact_locomotion_planner_sample{
   void sample3_jaxon(){
     cnoid::BodyPtr obstacle;
     std::shared_ptr<wholebodycontact_locomotion_planner::Environment> environment;
-    generateStepWorld(obstacle, environment);
+    generateWallWorld(obstacle, environment);
 
     std::shared_ptr<wholebodycontact_locomotion_planner::WBLPParam> param = std::make_shared<wholebodycontact_locomotion_planner::WBLPParam>();
     cnoid::BodyPtr abstractRobot;
@@ -23,7 +23,7 @@ namespace wholebodycontact_locomotion_planner_sample{
     viewer->objects(obstacle);
     viewer->drawObjects();
 
-    param->debugLevel=0;
+    param->debugLevel=2;
     param->viewer = viewer;
     param->maxSubGoalIdx = 1;
     param->gikRootParam.range = 0.5;
@@ -51,10 +51,14 @@ namespace wholebodycontact_locomotion_planner_sample{
     // param->gikParam.pikParam.viewer = viewer;
     param->useSwingGIK = true;
     param->pikParam.dqWeight = std::vector<double>(6+param->robot->numJoints(), 1.0);
+    param->positionConstraintPrecision = 1e-1;
+    param->positionConstraintWeight[0] = 3;
+    param->positionConstraintWeight[1] = 3;
+    param->positionConstraintWeight[2] = 10;
 
     cnoid::Isometry3 goal = param->robot->rootLink()->T();
     goal.translation()[0] += 0.4;
-    // goal.translation()[2] += 0.75;
+    //    goal.translation()[2] += 0.5;
 
     std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<wholebodycontact_locomotion_planner::Contact> > > > path;
 
