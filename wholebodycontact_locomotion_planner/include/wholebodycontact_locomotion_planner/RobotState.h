@@ -25,7 +25,7 @@ namespace wholebodycontact_locomotion_planner {
   public:
     std::string name;
     double score = 1.0; // 大きい方を好む
-
+    int minimumContactCount = 5; // この数を上回るreachabilityConstraintがあるとき、そのうち一つはkeepしない.
     std::vector<std::shared_ptr<ik_constraint2_distance_field::DistanceFieldCollisionConstraint> > reachabilityConstraints;
     std::shared_ptr<ik_constraint2::IKConstraint> generateCondition(const std::shared_ptr<Environment>& environment, const cnoid::BodyPtr& robot);
   };

@@ -19,11 +19,11 @@ namespace wholebodycontact_locomotion_planner_sample{
     // setup viewer
     std::shared_ptr<choreonoid_viewer::Viewer> viewer = std::make_shared<choreonoid_viewer::Viewer>();
     viewer->objects(param->robot);
-    viewer->objects(abstractRobot);
+    //    viewer->objects(abstractRobot);
     viewer->objects(obstacle);
     viewer->drawObjects();
 
-    param->debugLevel=2;
+    param->debugLevel=0;
     param->viewer = viewer;
     param->maxSubGoalIdx = 1;
     param->gikRootParam.range = 0.5;
@@ -58,7 +58,7 @@ namespace wholebodycontact_locomotion_planner_sample{
 
     cnoid::Isometry3 goal = param->robot->rootLink()->T();
     goal.translation()[0] += 0.4;
-    //    goal.translation()[2] += 0.5;
+    goal.translation()[2] += 0.5;
 
     std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<wholebodycontact_locomotion_planner::Contact> > > > path;
 

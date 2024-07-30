@@ -275,7 +275,12 @@ namespace wholebodycontact_locomotion_planner{
       // nextId-1(nextId++するので)になるまで、離れているものから順に近づけていく
       // 離れているものをできる限り近づける(guide path無視)と、スタックする恐れがある
       std::vector<int> subgoalIdQueue = std::vector<int>{change ? nextId : nextId-1};
-      std::vector<std::shared_ptr<Contact> > moveCandidate = currentContact;
+      std::vector<std::shared_ptr<Contact> > moveCandidate;
+      for (int i=0; i<currentContact.size(); i++) {
+        for (int j=0; j<guidePath[subgoalIdQueue.back()].second.size(); j++) {
+          if (currentContact[i]->name == guidePath[subgoalIdQueue.back()].second[j]->name) moveCandidate.push_back(currentContact[i]); // moveCandidateに追加するのは最後でも触れているものだけ. 最後に離す接触は動かさない.
+        }
+      }
       std::vector<std::vector<std::shared_ptr<Contact> > > moveCandidateQueue; // 0 : subgoalIdQueueに対応. そこまで達している. 1 : contact. 複数接触が同じidまで進む場合、複数Contactを同時にCandidateに追加するため.
       for (int iter = 0; iter<param->maxContactIter;iter++) {
         if (param->debugLevel >= 2) {

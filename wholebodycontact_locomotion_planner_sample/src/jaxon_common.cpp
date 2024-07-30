@@ -254,6 +254,7 @@ namespace wholebodycontact_locomotion_planner_sample{
       std::shared_ptr<wholebodycontact_locomotion_planner::Mode> mode = std::make_shared<wholebodycontact_locomotion_planner::Mode>();
       param->modes["wholebody"] = mode;
       mode->score = 2.0;
+      mode->minimumContactCount = 6;
       {
         // reachability
         for (int i=0; i<param->robot->numLinks(); i++) {
@@ -261,7 +262,7 @@ namespace wholebodycontact_locomotion_planner_sample{
           std::shared_ptr<ik_constraint2_distance_field::DistanceFieldCollisionConstraint> constraint = std::make_shared<ik_constraint2_distance_field::DistanceFieldCollisionConstraint>();
           constraint->A_link() = param->robot->link(i);
           constraint->field() = field;
-          constraint->tolerance() = 0.1; // ちょうど干渉すると法線ベクトルが変になることがあるので, 1回のiterationで動きうる距離よりも大きくせよ.
+          constraint->tolerance() = 0.3; // ちょうど干渉すると法線ベクトルが変になることがあるので, 1回のiterationで動きうる距離よりも大きくせよ.
           //          constraint->precision() = 0.01;
           constraint->ignoreDistance() = 0.5; // 大きく動くので、ignoreも大きくする必要がある
           //      constraint->maxError() = 0.1; // めり込んだら一刻も早く離れたい

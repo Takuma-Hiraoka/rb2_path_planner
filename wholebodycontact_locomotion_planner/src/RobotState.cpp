@@ -7,7 +7,7 @@ namespace wholebodycontact_locomotion_planner {
     std::shared_ptr<ik_constraint2_keep_collision_scfr::KeepCollisionScfrConstraint> keepScfrConstraint = std::make_shared<ik_constraint2_keep_collision_scfr::KeepCollisionScfrConstraint>();
     std::shared_ptr<ik_constraint2_scfr::ScfrConstraint> scfrConstraint = std::make_shared<ik_constraint2_scfr::ScfrConstraint>();
     scfrConstraint->A_robot() = robot;
-    keepScfrConstraint->minimumContactCount() = 5;
+    keepScfrConstraint->minimumContactCount() = this->minimumContactCount;
     keepScfrConstraint->breakableSCFRParam().lpTolerance = 1e-7;
     scfrConstraint->SCFRParam().eps = 0.2; // default 0.05 15点程度で接していても2ms程度で解ける
     scfrConstraint->SCFRParam().lpTolerance = 1e-7;
