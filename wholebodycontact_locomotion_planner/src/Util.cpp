@@ -273,12 +273,12 @@ namespace wholebodycontact_locomotion_planner{
     return solved;
   }
 
-  void calcIgnoreBoundingBox(const std::vector<std::shared_ptr<ik_constraint2::IKConstraint> >& constraints,
-                             const std::shared_ptr<Contact>& contact,
-                             int level
-                             ) { // constraint中のcollisionConstraintについて、contactのlink1のlevel等親のリンクの干渉回避である場合、contactのlink1のBoundingBoxを追加する.
-    std::vector<cnoid::LinkPtr> targetLinks;
-    targetLinks.push_back(contact->link1);
+  void calcLevelLinks(const cnoid::LinkPtr inputLink,
+                      int level, // input
+                      std::vector<cnoid::LinkPtr> targetLinks // output
+                      ){ // inputLinkのlevel等親のリンクをtargetLinksとして返す.
+    targetLinks.clear();
+    targetLinks.push_back(inputLink);
     for (int iter=0; iter<level; iter++) {
       int prevLevelSize = targetLinks.size();
       for (int i=0; i<prevLevelSize; i++) {
@@ -290,6 +290,14 @@ namespace wholebodycontact_locomotion_planner{
         }
       }
     }
+  }
+
+  void calcIgnoreBoundingBox(const std::vector<std::shared_ptr<ik_constraint2::IKConstraint> >& constraints,
+                             const std::shared_ptr<Contact>& contact,
+                             int level
+                             ) { // constraint中のcollisionConstraintについて、contactのlink1のlevel等親のリンクの干渉回避である場合、contactのlink1のBoundingBoxを追加する.
+    std::vector<cnoid::LinkPtr> targetLinks;
+    calcLevelLinks(contact->link1, level, targetLinks);
 
     for (int i=0; i<constraints.size(); i++) {
       if (typeid(*(constraints[i]))==typeid(ik_constraint2_distance_field::DistanceFieldCollisionConstraint)) {
@@ -311,18 +319,7 @@ namespace wholebodycontact_locomotion_planner{
                              int level
                              ) { // constraint中のcollisionConstraintについて、contactのlink1のlevel等親のリンクの干渉回避である場合、contactのlink1のBoundingBoxを追加する.
     std::vector<cnoid::LinkPtr> targetLinks;
-    targetLinks.push_back(contact->link1);
-    for (int iter=0; iter<level; iter++) {
-      int prevLevelSize = targetLinks.size();
-      for (int i=0; i<prevLevelSize; i++) {
-        if ((targetLinks[i]->parent() != nullptr) && (std::find(targetLinks.begin(), targetLinks.end(), targetLinks[i]->parent()) == targetLinks.end())) targetLinks.push_back(targetLinks[i]->parent());
-        cnoid::LinkPtr child = targetLinks[i]->child();
-        while (child != nullptr) {
-          if (std::find(targetLinks.begin(), targetLinks.end(), child) == targetLinks.end()) targetLinks.push_back(child);
-          child = child->sibling();
-        }
-      }
-    }
+    calcLevelLinks(contact->link1, level, targetLinks);
 
     for (int i=0; i<constraints.size(); i++) {
       if (std::find(targetLinks.begin(), targetLinks.end(), constraints[i]->A_link()) != targetLinks.end()) {
