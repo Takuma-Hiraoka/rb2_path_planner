@@ -96,7 +96,7 @@ namespace wholebodycontact_locomotion_planner_sample{
           cnoid::SgShapePtr shape = new cnoid::SgShape();
           shape->setMesh(meshGenerator.generateBox(cnoid::Vector3(2,0.1,0.75)));
           cnoid::SgMaterialPtr material = new cnoid::SgMaterial();
-          material->setTransparency(0);
+          material->setTransparency(0.5);
           shape->setMaterial(material);
           cnoid::SgPosTransformPtr posTransform = new cnoid::SgPosTransform();
           posTransform->translation() = cnoid::Vector3(1.5,0.45,0.4);

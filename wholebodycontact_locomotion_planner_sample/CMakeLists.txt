@@ -34,6 +34,7 @@ add_library(CnoidWholeBodyContactLocomotionPlannerSamplePlugin SHARED
   src/sample2_tunnel.cpp
   src/jaxon_common.cpp
   src/sample3_jaxon.cpp
+  src/sample4_jaxon_tunnel.cpp
   )
 target_link_libraries(CnoidWholeBodyContactLocomotionPlannerSamplePlugin
   ${catkin_LIBRARIES}
