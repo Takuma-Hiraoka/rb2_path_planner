@@ -51,10 +51,17 @@ namespace wholebodycontact_locomotion_planner_sample{
     // param->gikParam.pikParam.viewer = viewer;
     param->useSwingGIK = true;
     param->pikParam.dqWeight = std::vector<double>(6+param->robot->numJoints(), 1.0);
+    param->pikParam.dqWeight[0] = 0.3;
+    param->pikParam.dqWeight[1] = 0.3;
+    param->pikParam.dqWeight[2] = 0.3;
     param->positionConstraintPrecision = 1e-1;
     param->positionConstraintWeight[0] = 3;
     param->positionConstraintWeight[1] = 3;
     param->positionConstraintWeight[2] = 10;
+    param->positionConstraintWeight[3] = 10;
+    param->positionConstraintWeight[4] = 10;
+    param->positionConstraintWeight[5] = 0.01;
+
 
     cnoid::Isometry3 goal = param->robot->rootLink()->T();
     goal.translation()[0] += 0.4;
@@ -65,22 +72,22 @@ namespace wholebodycontact_locomotion_planner_sample{
                                                      goal,
                                                      param,
                                                      path);
-    // std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<wholebodycontact_locomotion_planner::Contact> > > > contactPath;
-    // global_inverse_kinematics_solver::frame2Link(initialPose,param->variables);
-    // param->robot->calcForwardKinematics(false);
-    // param->robot->calcCenterOfMass();
-    // bool solved = wholebodycontact_locomotion_planner::solveCBStance(param,
-    //                                                                  path,
-    //                                                                  contactPath);
-    // if (!solved) return;
-    // std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<wholebodycontact_locomotion_planner::Contact> > > > outputPath;
-    // global_inverse_kinematics_solver::frame2Link(initialPose,param->variables);
-    // param->robot->calcForwardKinematics(false);
-    // param->robot->calcCenterOfMass();
-    // solved = wholebodycontact_locomotion_planner::solveWBLP(param,
-    //                                                         contactPath,
-    //                                                         outputPath);
-    // if (!solved) return;
+    std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<wholebodycontact_locomotion_planner::Contact> > > > contactPath;
+    global_inverse_kinematics_solver::frame2Link(initialPose,param->variables);
+    param->robot->calcForwardKinematics(false);
+    param->robot->calcCenterOfMass();
+    bool solved = wholebodycontact_locomotion_planner::solveCBStance(param,
+                                                                     path,
+                                                                     contactPath);
+    if (!solved) return;
+    std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<wholebodycontact_locomotion_planner::Contact> > > > outputPath;
+    global_inverse_kinematics_solver::frame2Link(initialPose,param->variables);
+    param->robot->calcForwardKinematics(false);
+    param->robot->calcCenterOfMass();
+    solved = wholebodycontact_locomotion_planner::solveWBLP(param,
+                                                            contactPath,
+                                                            outputPath);
+    if (!solved) return;
 
     while (true) {
       // main loop
@@ -94,26 +101,26 @@ namespace wholebodycontact_locomotion_planner_sample{
         // std::cerr << std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
       }
-      // global_inverse_kinematics_solver::frame2Link(initialPose,param->variables);
-      // param->robot->calcForwardKinematics(false);
-      // param->robot->calcCenterOfMass();
-      // for(int i=0;i<contactPath.size();i++){
-      //   global_inverse_kinematics_solver::frame2Link(contactPath.at(i).first,param->variables);
-      //   param->robot->calcForwardKinematics(false);
-      //   param->robot->calcCenterOfMass();
-      //   viewer->drawObjects();
-      //   std::this_thread::sleep_for(std::chrono::milliseconds(200));
-      // }
-      // global_inverse_kinematics_solver::frame2Link(initialPose,param->variables);
-      // param->robot->calcForwardKinematics(false);
-      // param->robot->calcCenterOfMass();
-      // for(int i=0;i<outputPath.size();i++){
-      //   global_inverse_kinematics_solver::frame2Link(outputPath.at(i).first,param->variables);
-      //   param->robot->calcForwardKinematics(false);
-      //   param->robot->calcCenterOfMass();
-      //   viewer->drawObjects();
-      //   std::this_thread::sleep_for(std::chrono::milliseconds(200));
-      // }
+      global_inverse_kinematics_solver::frame2Link(initialPose,param->variables);
+      param->robot->calcForwardKinematics(false);
+      param->robot->calcCenterOfMass();
+      for(int i=0;i<contactPath.size();i++){
+        global_inverse_kinematics_solver::frame2Link(contactPath.at(i).first,param->variables);
+        param->robot->calcForwardKinematics(false);
+        param->robot->calcCenterOfMass();
+        viewer->drawObjects();
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+      }
+      global_inverse_kinematics_solver::frame2Link(initialPose,param->variables);
+      param->robot->calcForwardKinematics(false);
+      param->robot->calcCenterOfMass();
+      for(int i=0;i<outputPath.size();i++){
+        global_inverse_kinematics_solver::frame2Link(outputPath.at(i).first,param->variables);
+        param->robot->calcForwardKinematics(false);
+        param->robot->calcCenterOfMass();
+        viewer->drawObjects();
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+      }
     }
   }
 }

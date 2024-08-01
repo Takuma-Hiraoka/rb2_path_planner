@@ -106,7 +106,7 @@ namespace wholebodycontact_locomotion_planner{
         constraint->A_localpos() = param->currentContactPoints[i]->localPose1;
         constraint->B_link() = param->currentContactPoints[i]->link2;
         constraint->B_localpos() = param->currentContactPoints[i]->localPose2;
-        constraint->B_localpos().translation() += param->currentContactPoints[i]->localPose1.linear() * cnoid::Vector3(0,0,0.03); // 0.03だけ離す
+        constraint->B_localpos().translation() += param->currentContactPoints[i]->localPose2.linear() * cnoid::Vector3(0,0,0.05); // 0.03だけ離す
         constraint->eval_link() = nullptr;
         breakConstraints.push_back(constraint);
       }
