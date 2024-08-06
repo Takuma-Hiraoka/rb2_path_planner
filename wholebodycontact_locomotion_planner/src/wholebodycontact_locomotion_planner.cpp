@@ -341,13 +341,17 @@ namespace wholebodycontact_locomotion_planner{
           std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
           frame2Nominals(guidePath[idx].first, param->variables, nominals);
           std::vector<double> frame;
+          std::vector<cnoid::Isometry3> prevNextContactLocalPose1s;
           std::vector<std::shared_ptr<Contact> > moveContact;
           for (int i=0; i<guidePath[idx].second.size(); i++) {
-            if (std::find(moveContactLinks.begin(), moveContactLinks.end(), guidePath[idx].second[i]->name) != moveContactLinks.end()) moveContact.push_back(guidePath[idx].second[i]);
+            if (std::find(moveContactLinks.begin(), moveContactLinks.end(), guidePath[idx].second[i]->name) != moveContactLinks.end()) {
+              moveContact.push_back(guidePath[idx].second[i]);
+              prevNextContactLocalPose1s.push_back(guidePath[idx].second[i]->localPose1);
+            }
           }
-          if (!solveContactIK(param, currentContact, moveContact, nominals, idx==pathId ? IKState::DETACH_FIXED : IKState::DETACH)) break;
+          if (!solveContactIK(param, currentContact, moveContact, nominals, idx==pathId ? IKState::DETACH_FIXED : IKState::SWING)) break;
           global_inverse_kinematics_solver::link2Frame(param->variables, frame);
-          if (solveContactIK(param, currentContact, moveContact, nominals, idx==pathId ? IKState::ATTACH_FIXED : IKState::ATTACH)) { // 着地も可能
+          if (solveContactIK(param, currentContact, moveContact, nominals, idx==pathId ? IKState::ATTACH_FIXED : IKState::ATTACH) || solveContactIK(param, currentContact, moveContact, nominals, idx==pathId ? IKState::ATTACH_FIXED : IKState::ATTACH_SEARCH)) { // 着地も可能
             path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > >(frame, currentContact)); // TODO currentContactからmoveContactを除くこと
             global_inverse_kinematics_solver::link2Frame(param->variables, lastLandingFrame);
             global_inverse_kinematics_solver::frame2Link(frame, param->variables);
@@ -361,6 +365,8 @@ namespace wholebodycontact_locomotion_planner{
               getchar();
             }
           } else {
+            // 探索したときに次の接触のローカル座標を変更しているのでもとに戻す
+            for (int i=0;i<moveContact.size();i++) moveContact[i]->localPose1 = prevNextContactLocalPose1s[i];
             break;
           }
         }
@@ -547,8 +553,10 @@ namespace wholebodycontact_locomotion_planner{
             }
           }
           if(!solveContactIK(param, currentContact, attachContact, nominals, IKState::ATTACH)) {
-            std::cerr << "cannot attach contact" << std::endl;
-            break;
+            if(!solveContactIK(param, currentContact, attachContact, nominals, IKState::ATTACH_SEARCH)) {
+              std::cerr << "cannot attach contact" << std::endl;
+              break;
+            }
           }
           global_inverse_kinematics_solver::link2Frame(param->variables, frame);
           // currentContactを更新

@@ -30,6 +30,7 @@ namespace wholebodycontact_locomotion_planner{
           if (nextContacts[j]->name == std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->A_link()->name()) {
             if ((ikState == IKState::ATTACH) ||
                 (ikState == IKState::ATTACH_FIXED) ||
+                (ikState == IKState::ATTACH_SEARCH) ||
                 (ikState == IKState::SLIDE) ||
                 (ikState == IKState::DETACH) ||
                 (ikState == IKState::DETACH_FIXED)) { // 実際に触れされるときだけ、触れるリンクの干渉は無視する. slideならはじめに着いたとき、detach-attachならdetachのときに干渉を考慮した姿勢が出ているので、そこから先は干渉しないと仮定.
@@ -81,7 +82,7 @@ namespace wholebodycontact_locomotion_planner{
         calcIgnoreBoundingBox(param->constraints, stopContacts[i], 3);
       }
       for (int i=0; i<nextContacts.size(); i++) {
-        if ((ikState == IKState::SWING) || (ikState == IKState::CONTACT_SEARCH)) { // 現在接触している状態から外すときに接触点も探索に含めてしまうと、リンクの裏側に接触点が移動してしまう
+        if ((ikState == IKState::ATTACH_SEARCH) || (ikState == IKState::SWING) || (ikState == IKState::CONTACT_SEARCH)) { // 現在接触している状態から外すときに接触点も探索に含めてしまうと、リンクの裏側に接触点が移動してしまう
           for (int j=0; j<param->bodyContactConstraints.size(); j++) {
             if (nextContacts[i]->name == param->bodyContactConstraints[j]->A_link()->name()) {
               std::shared_ptr<ik_constraint2_body_contact::BodyContactConstraint> constraint = param->bodyContactConstraints[j];
@@ -92,7 +93,7 @@ namespace wholebodycontact_locomotion_planner{
               }
               constraint->B_link() = nextContacts[i]->link2;
               constraint->B_localpos() = nextContacts[i]->localPose2;
-              constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.03); // 0.03だけ離す
+              if ((ikState == IKState::SWING) || (ikState == IKState::CONTACT_SEARCH)) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.03); // 0.03だけ離す
               constraint->eval_localR() = constraint->B_localpos().linear();
               constraint->contact_pos_link()->T() = constraint->A_localpos();
               constraints2.push_back(constraint);
@@ -202,7 +203,7 @@ namespace wholebodycontact_locomotion_planner{
     scfrConstraint->dus() = dus;
     constraints0.push_back(scfrConstraint);
 
-    bool solved;
+    bool solved = false;
     std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints{constraints0, constraints1, constraints2, nominals};
     std::vector<std::shared_ptr<prioritized_qp_base::Task> > prevTasks;
     solved  =  prioritized_inverse_kinematics_solver2::solveIKLoop(variables,
@@ -215,8 +216,11 @@ namespace wholebodycontact_locomotion_planner{
          (ikState==IKState::DETACH_FIXED) ||
          (ikState==IKState::ATTACH) ||
          (ikState==IKState::ATTACH_FIXED) ||
+         (ikState==IKState::ATTACH_SEARCH) ||
          (ikState==IKState::DETACH_SEARCH) ||
-         (ikState==IKState::SLIDE)) // 干渉判定ができないので触れるときはgikのpathが実行不可能なものが出てくる可能性があるが、単に姿勢だけを出す目的でのみ使う. 接触ローカル座標系の位置姿勢が変わらないのでめり込むような姿勢は出てきにくいはず.
+         (ikState==IKState::SLIDE) ||
+         (ikState==IKState::CONTACT_SEARCH) ||
+         (ikState==IKState::SWING)) // 干渉判定ができないので触れるときはgikのpathが実行不可能なものが出てくる可能性があるが、単に姿勢だけを出す目的でのみ使う. 接触ローカル座標系の位置姿勢が変わらないのでめり込むような姿勢は出てきにくいはず.
         && param->useSwingGIK){
       std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > gikConstraints{constraints0, constraints1};
       param->gikParam.projectLink.resize(1);
@@ -263,7 +267,7 @@ namespace wholebodycontact_locomotion_planner{
         }
       }
     }
-    if ((ikState==IKState::SWING) || (ikState == IKState::CONTACT_SEARCH)) {
+    if ((ikState==IKState::ATTACH_FIXED) || (ikState==IKState::SWING) || (ikState == IKState::CONTACT_SEARCH)) {
       param->pikParam.dqWeight.resize(6+param->robot->numJoints());
       param->gikParam.pikParam.dqWeight.resize(6+param->robot->numJoints());
       for (int i=0; i<nextContacts.size(); i++) {

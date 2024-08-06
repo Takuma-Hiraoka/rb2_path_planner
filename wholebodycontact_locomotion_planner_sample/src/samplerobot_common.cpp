@@ -308,12 +308,15 @@ namespace wholebodycontact_locomotion_planner_sample{
     for (int i=0; i<param->robot->numLinks(); i++) {
       if(std::find(contactableLinkNames.begin(),contactableLinkNames.end(),param->robot->link(i)->name()) == contactableLinkNames.end()) continue;
       cnoid::LinkPtr variable = new cnoid::Link();
+      cnoid::BodyPtr body = new cnoid::Body();
+      body->setRootLink(variable);
       variable->setJointType(cnoid::Link::JointType::FreeJoint);
       std::shared_ptr<ik_constraint2_body_contact::BodyContactConstraint> constraint = std::make_shared<ik_constraint2_body_contact::BodyContactConstraint>();
       constraint->A_link() = param->robot->link(i);
       constraint->B_link() = nullptr;
       constraint->contact_pos_link() = variable;
       constraint->contact_pos_link()->T() = constraint->A_localpos();
+      constraint->contact_pos_body() = body;
       for(std::unordered_map<std::string, std::vector<cnoid::Isometry3> >::const_iterator it=contactPoints.begin(); it!=contactPoints.end(); it++){
         if (it->first==param->robot->link(i)->name()) constraint->setContactPoints(it->second, 0.05, 16);
       }

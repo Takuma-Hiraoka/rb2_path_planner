@@ -60,8 +60,8 @@ namespace wholebodycontact_locomotion_planner_sample{
     param->positionConstraintWeight[5] = 0.01;
 
     cnoid::Isometry3 goal = param->robot->rootLink()->T();
-    goal.translation()[0] += 0.0;
-    goal.translation()[2] += 0.4;
+    goal.translation()[0] += 0.4;
+    goal.translation()[2] += 0.0;
 
     std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<wholebodycontact_locomotion_planner::Contact> > > > path;
 
