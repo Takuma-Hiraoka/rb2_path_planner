@@ -116,8 +116,7 @@ namespace wholebodycontact_locomotion_planner{
           std::shared_ptr<ik_constraint2::PositionConstraint> constraint = std::make_shared<ik_constraint2::PositionConstraint>();
           constraint->A_link() = nextContacts[i]->link1;
           if ((ikState==IKState::DETACH_FIXED) ||
-              (ikState==IKState::ATTACH_FIXED) ||
-              (ikState==IKState::SLIDE)) {
+              (ikState==IKState::ATTACH_FIXED)) {
             for (int j=0; j<stopContacts.size(); j++) {
               if (nextContacts[i]->name == stopContacts[j]->name) {
                 constraint->A_localpos() = stopContacts[j]->localPose1;
@@ -125,13 +124,22 @@ namespace wholebodycontact_locomotion_planner{
             }
           } else if ((ikState==IKState::DETACH) ||
                      (ikState==IKState::ATTACH) ||
-                     (ikState==IKState::DETACH_SEARCH)) {
+                     (ikState==IKState::DETACH_SEARCH) ||
+                     (ikState==IKState::SLIDE)) {
             constraint->A_localpos() = nextContacts[i]->localPose1;
           } else {
             std::cerr << "Undefined IKState !!" << std::endl;
           }
           constraint->B_link() = nextContacts[i]->link2;
-          constraint->B_localpos() = nextContacts[i]->localPose2;
+          if ((ikState==IKState::DETACH_FIXED) || (ikState==IKState::ATTACH_FIXED)) { // 離れられるかのチェックなのでいま接触している場所を目標にする.
+            for (int j=0; j<stopContacts.size(); j++) {
+              if (nextContacts[i]->name == stopContacts[j]->name) {
+                constraint->B_localpos() = stopContacts[j]->localPose2;
+              }
+            }
+          } else {
+            constraint->B_localpos() = nextContacts[i]->localPose2;
+          }
           if ((ikState==IKState::DETACH) ||
               (ikState==IKState::DETACH_FIXED) ||
               (ikState==IKState::DETACH_SEARCH)) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.03);
@@ -139,7 +147,7 @@ namespace wholebodycontact_locomotion_planner{
               (ikState==IKState::ATTACH_FIXED) ||
               (ikState==IKState::SLIDE)) calcIgnoreBoundingBox(param->constraints, nextContacts[i], 3);
           constraint->eval_link() = nullptr;
-          constraint->eval_localR() = nextContacts[i]->localPose2.rotation();
+          constraint->eval_localR() = constraint->B_localpos().rotation();
           constraint->weight() = param->positionConstraintWeight;
           constraint->precision() = param->positionConstraintPrecision;
           constraints2.push_back(constraint);
@@ -157,7 +165,7 @@ namespace wholebodycontact_locomotion_planner{
           if (ikState==IKState::SLIDE) {
             for (int j=0; j<stopContacts.size(); j++) {
               if (nextContacts[i]->name == stopContacts[j]->name) {
-                constraint->weight()[5] = 1.0; // 摩擦制約の関係上一致させる必要がある
+                constraint->weight()[5] = 1.0e-3 / constraint->precision(); // 摩擦制約の関係上一致させる必要がある
                 poses.push_back(nextContacts[i]->localPose2);
                 cnoid::Vector3 diff = (stopContacts[j]->link1->T() * stopContacts[j]->localPose1).rotation().transpose() * (nextContacts[i]->localPose2.translation() - stopContacts[j]->localPose2.translation());
                 cnoid::Matrix3 diffR = ((stopContacts[j]->link1->T() * stopContacts[j]->localPose1).rotation().transpose() * (nextContacts[i]->link1->T() * nextContacts[i]->localPose1).rotation());
