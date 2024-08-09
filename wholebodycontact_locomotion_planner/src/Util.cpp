@@ -117,7 +117,8 @@ namespace wholebodycontact_locomotion_planner{
           std::shared_ptr<ik_constraint2::PositionConstraint> constraint = std::make_shared<ik_constraint2::PositionConstraint>();
           constraint->A_link() = nextContacts[i]->link1;
           if ((ikState==IKState::DETACH_FIXED) ||
-              (ikState==IKState::ATTACH_FIXED)) {
+              (ikState==IKState::ATTACH_FIXED) ||
+                     (ikState==IKState::SLIDE)) {
             for (int j=0; j<stopContacts.size(); j++) {
               if (nextContacts[i]->name == stopContacts[j]->name) {
                 constraint->A_localpos() = stopContacts[j]->localPose1;
@@ -125,8 +126,7 @@ namespace wholebodycontact_locomotion_planner{
             }
           } else if ((ikState==IKState::DETACH) ||
                      (ikState==IKState::ATTACH) ||
-                     (ikState==IKState::DETACH_SEARCH) ||
-                     (ikState==IKState::SLIDE)) {
+                     (ikState==IKState::DETACH_SEARCH)) {
             constraint->A_localpos() = nextContacts[i]->localPose1;
           } else {
             std::cerr << "Undefined IKState !!" << std::endl;

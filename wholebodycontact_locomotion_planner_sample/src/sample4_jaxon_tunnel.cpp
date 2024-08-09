@@ -40,12 +40,14 @@ namespace wholebodycontact_locomotion_planner_sample{
     // param->gikRootParam.pikParam.viewMilliseconds = -1;
     // param->gikRootParam.pikParam.debugLevel = 3;
     param->pikParam.viewer = viewer;
-    param->pikParam.debugLevel = 0;
+    param->pikParam.debugLevel = 3;
     param->pikParam.viewMilliseconds = -1;
     param->gikParam.viewer = viewer;
     param->gikParam.threads = param->gikRootParam.threads;
     param->gikParam.timeout = 1;
     param->gikRootParam.goalBias = 0.2;
+    //    param->moveContactsLevel = 6;
+    // param->gikRootParam.pikParam.pathOutputLoop = 1;
     // param->gikParam.pikParam.debugLevel = 3;
     // param->gikParam.pikParam.viewMilliseconds = -1;
     // param->gikParam.pikParam.viewer = viewer;

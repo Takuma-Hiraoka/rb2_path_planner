@@ -15,6 +15,15 @@ namespace wholebodycontact_locomotion_planner{
         nominals.push_back(constraint);
         i+=1;
       }else if(links[l]->isFreeJoint()) {
+        std::shared_ptr<ik_constraint2::PositionConstraint> constraint = std::make_shared<ik_constraint2::PositionConstraint>();
+        constraint->A_link() = links[l];
+        constraint->B_localpos().translation() = cnoid::Vector3(frame[i+0],frame[i+1],frame[i+2]);
+        constraint->B_localpos().linear() = cnoid::Quaternion(frame[i+6],
+                                                              frame[i+3],
+                                                              frame[i+4],
+                                                              frame[i+5]).toRotationMatrix();
+        constraint->precision() = 1e10; // always satisfied
+        constraint->weight() << 3.0, 3.0, 3.0, 3.0, 3.0, 3.0;
         i+=7;
       }
     }
@@ -388,6 +397,8 @@ namespace wholebodycontact_locomotion_planner{
         } else { // detach-attachでは1stepも進めない場合
           path.clear();
           global_inverse_kinematics_solver::frame2Link(pathInitialFrame, param->variables);
+          param->robot->calcForwardKinematics(false);
+          param->robot->calcCenterOfMass();
           // 選ばれたcontactだけ、slideでIKが解けなくなるまでguidePathを進める
           for (idx=pathId+1; idx<=subgoalIdQueue.back(); idx++) {
             std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;

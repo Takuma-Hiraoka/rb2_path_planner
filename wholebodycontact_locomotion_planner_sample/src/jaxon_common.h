@@ -11,7 +11,8 @@ namespace wholebodycontact_locomotion_planner_sample{
   void generateJAXON(const std::shared_ptr<moveit_extensions::InterpolatedPropagationDistanceField>& field,
                            std::shared_ptr<wholebodycontact_locomotion_planner::WBLPParam>& param,
                            cnoid::BodyPtr& abstractRobot,
-                           bool quadruped=false
+                           bool quadruped=false,
+                           bool crawl=false
                            );
 
 };

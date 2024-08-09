@@ -11,7 +11,8 @@ namespace wholebodycontact_locomotion_planner_sample{
   void generateJAXON(const std::shared_ptr<moveit_extensions::InterpolatedPropagationDistanceField>& field,
                            std::shared_ptr<wholebodycontact_locomotion_planner::WBLPParam>& param,
                            cnoid::BodyPtr& abstractRobot, // for visual
-                           bool quadruped
+                           bool quadruped,
+                           bool crawl
                            ) {
     cnoid::BodyLoader bodyLoader;
     param->robot = bodyLoader.load(ros::package::getPath("msl_hand_models") + "/JAXON_RED_WITH_MSLHAND/JAXON_REDmain.wrl");
@@ -78,6 +79,58 @@ namespace wholebodycontact_locomotion_planner_sample{
         // "LARM_JOINT1",
         // "LARM_JOINT2",
         // "LARM_JOINT3",
+        // "LARM_JOINT4",
+        // "LARM_JOINT5",
+        // "LARM_JOINT6",
+        // "LARM_JOINT7",
+        // "RARM_JOINT0",
+        // "RARM_JOINT1",
+        // "RARM_JOINT2",
+        // "RARM_JOINT3",
+        // "RARM_JOINT4",
+        // "RARM_JOINT5",
+        // "RARM_JOINT6",
+        // "RARM_JOINT7",
+        // "LLEG_JOINT0",
+        // "LLEG_JOINT1",
+        "LLEG_JOINT2",
+        // "LLEG_JOINT3",
+        // "LLEG_JOINT4",
+        // "LLEG_JOINT5",
+        // "RLEG_JOINT0",
+        // "RLEG_JOINT1",
+        "RLEG_JOINT2",
+        // "RLEG_JOINT3",
+        // "RLEG_JOINT4",
+        // "RLEG_JOINT5",
+        "HANDBASE_L",
+        // "L_THUMB_JOINT0",
+        // "L_THUMB_JOINT1",
+        // "L_INDEX_JOINT0",
+        // "L_INDEX_JOINT1",
+        // "L_MIDDLE_JOINT0",
+        // "L_LOCK_JOINT0",
+        "HANDBASE_R",
+        // "R_THUMB_JOINT0",
+        // "R_THUMB_JOINT1",
+        // "R_INDEX_JOINT0",
+        // "R_INDEX_JOINT1",
+        // "R_MIDDLE_JOINT0",
+        // "R_LOCK_JOINT0",
+      };
+      contactableLinkNames = quadruped_contactableLinkNames;
+    } else if (crawl) {
+      std::vector<std::string> crawl_contactableLinkNames{
+        // "BODY",
+        // "CHEST_JOINT0",
+        // "CHEST_JOINT1",
+        // "CHEST_JOINT2",
+        // "HEAD_JOINT0",
+        // "HEAD_JOINT1",
+        // "LARM_JOINT0",
+        // "LARM_JOINT1",
+        // "LARM_JOINT2",
+        // "LARM_JOINT3",
         "LARM_JOINT4",
         // "LARM_JOINT5",
         // "LARM_JOINT6",
@@ -116,8 +169,8 @@ namespace wholebodycontact_locomotion_planner_sample{
         // "R_INDEX_JOINT1",
         // "R_MIDDLE_JOINT0",
         // "R_LOCK_JOINT0",
-      };
-      contactableLinkNames = quadruped_contactableLinkNames;
+          };
+      contactableLinkNames = crawl_contactableLinkNames;
     }
     // reset manip pose
     param->robot->rootLink()->p() = cnoid::Vector3(0,0,1.0);
@@ -150,6 +203,22 @@ namespace wholebodycontact_locomotion_planner_sample{
           0.0, 1.5708, -M_PI*2/3, -M_PI/2, -M_PI*2/3, 0.0 // left_hand
           };
       reset_manip_pose = quadruped_reset_manip_pose;
+    } else if (crawl) {
+      param->robot->rootLink()->p() = cnoid::Vector3(0.3,0,0.25);
+      param->robot->rootLink()->v().setZero();
+      param->robot->rootLink()->R() = cnoid::rotFromRpy(0.0,M_PI/2,0.0);
+      param->robot->rootLink()->w().setZero();
+      std::vector<double> crawl_reset_manip_pose{
+        0.0, 0.0, -0.549066, 0.898132, -0.349066, 0.0,// rleg
+          0.0, 0.0, -0.549066, 0.898132, -0.349066, 0.0,// lleg
+          0.0, 0.0, 0.0, // torso
+          0.0, -0.1, // head
+          0.0, -2.459931, -0.299066, 0.1, -0.74533, -0.236332, 0.2, -0.045398,// rarm
+          0.0, -2.459931, 0.299066, -0.1, -0.74533, 0.236332, -0.2, -0.045398,// larm
+          0.0, 1.5708, M_PI*2/3, M_PI/2, M_PI*2/3, 0.0, // right_hand
+          0.0, 1.5708, -M_PI*2/3, -M_PI/2, -M_PI*2/3, 0.0 // left_hand
+          };
+      reset_manip_pose = crawl_reset_manip_pose;
     }
 
     for(int j=0; j < param->robot->numJoints(); ++j){
@@ -192,13 +261,14 @@ namespace wholebodycontact_locomotion_planner_sample{
 
     param->currentContactPoints.clear();
     {
-      if(!quadruped) {
+      if (quadruped) {
         {
-          std::shared_ptr<wholebodycontact_locomotion_planner::Contact> lleg = std::make_shared<wholebodycontact_locomotion_planner::Contact>();
-          lleg->name = "LLEG_JOINT5";
-          lleg->link1 = param->robot->link("LLEG_JOINT5");
-          lleg->localPose1.translation() = cnoid::Vector3(0.0,0.0,-0.1);
-          lleg->localPose2 = lleg->link1->T() * lleg->localPose1;
+          std::shared_ptr<wholebodycontact_locomotion_planner::Contact> lknee = std::make_shared<wholebodycontact_locomotion_planner::Contact>();
+          lknee->name = "LLEG_JOINT2";
+          lknee->link1 = param->robot->link("LLEG_JOINT2");
+          lknee->localPose1.translation() = cnoid::Vector3(0.045,0.073,-0.41);
+          lknee->localPose2.translation() =  lknee->link1->p() + lknee->link1->R() * lknee->localPose1.translation();
+          lknee->localPose1.linear() = lknee->link1->R().transpose() * lknee->localPose2.linear();
           Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6);
           C.insert(0,2) = 1.0;
           C.insert(1,0) = 1.0; C.insert(1,2) = 0.2;
@@ -211,20 +281,21 @@ namespace wholebodycontact_locomotion_planner_sample{
           C.insert(8,2) = 0.05; C.insert(8,4) = -1.0;
           C.insert(9,2) = 0.005; C.insert(9,5) = 1.0;
           C.insert(10,2) = 0.005; C.insert(10,5) = -1.0;
-          lleg->C = C;
+          lknee->C = C;
           cnoid::VectorX dl = Eigen::VectorXd::Zero(11);
-          lleg->dl = dl;
+          lknee->dl = dl;
           cnoid::VectorX du = 1e10 * Eigen::VectorXd::Ones(11);
           du[0] = 2000.0;
-          lleg->du = du;
-          param->currentContactPoints.push_back(lleg);
+          lknee->du = du;
+          param->currentContactPoints.push_back(lknee);
         }
         {
-          std::shared_ptr<wholebodycontact_locomotion_planner::Contact> rleg = std::make_shared<wholebodycontact_locomotion_planner::Contact>();
-          rleg->name = "RLEG_JOINT5";
-          rleg->link1 = param->robot->link("RLEG_JOINT5");
-          rleg->localPose1.translation() = cnoid::Vector3(0.0,0.0,-0.1);
-          rleg->localPose2 = rleg->link1->T() * rleg->localPose1;
+          std::shared_ptr<wholebodycontact_locomotion_planner::Contact> rknee = std::make_shared<wholebodycontact_locomotion_planner::Contact>();
+          rknee->name = "RLEG_JOINT2";
+          rknee->link1 = param->robot->link("RLEG_JOINT2");
+          rknee->localPose1.translation() = cnoid::Vector3(0.045,-0.073,-0.41);
+          rknee->localPose2.translation() =  rknee->link1->p() + rknee->link1->R() * rknee->localPose1.translation();
+          rknee->localPose1.linear() = rknee->link1->R().transpose() * rknee->localPose2.linear();
           Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6);
           C.insert(0,2) = 1.0;
           C.insert(1,0) = 1.0; C.insert(1,2) = 0.2;
@@ -237,15 +308,69 @@ namespace wholebodycontact_locomotion_planner_sample{
           C.insert(8,2) = 0.05; C.insert(8,4) = -1.0;
           C.insert(9,2) = 0.005; C.insert(9,5) = 1.0;
           C.insert(10,2) = 0.005; C.insert(10,5) = -1.0;
-          rleg->C = C;
+          rknee->C = C;
           cnoid::VectorX dl = Eigen::VectorXd::Zero(11);
-          rleg->dl = dl;
+          rknee->dl = dl;
           cnoid::VectorX du = 1e10 * Eigen::VectorXd::Ones(11);
           du[0] = 2000.0;
-          rleg->du = du;
-          param->currentContactPoints.push_back(rleg);
+          rknee->du = du;
+          param->currentContactPoints.push_back(rknee);
         }
-      } else {
+        {
+          std::shared_ptr<wholebodycontact_locomotion_planner::Contact> lhand = std::make_shared<wholebodycontact_locomotion_planner::Contact>();
+          lhand->name = "HANDBASE_L";
+          lhand->link1 = param->robot->link("HANDBASE_L");
+          lhand->localPose1.translation() = cnoid::Vector3(0.013,0.0,-0.069);
+          lhand->localPose2.translation() =  lhand->link1->p() + lhand->link1->R() * lhand->localPose1.translation();
+          lhand->localPose1.linear() = lhand->link1->R().transpose() * lhand->localPose2.linear();
+          Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6);
+          C.insert(0,2) = 1.0;
+          C.insert(1,0) = 1.0; C.insert(1,2) = 0.2;
+          C.insert(2,0) = -1.0; C.insert(2,2) = 0.2;
+          C.insert(3,1) = 1.0; C.insert(3,2) = 0.2;
+          C.insert(4,1) = -1.0; C.insert(4,2) = 0.2;
+          C.insert(5,2) = 0.05; C.insert(5,3) = 1.0;
+          C.insert(6,2) = 0.05; C.insert(6,3) = -1.0;
+          C.insert(7,2) = 0.05; C.insert(7,4) = 1.0;
+          C.insert(8,2) = 0.05; C.insert(8,4) = -1.0;
+          C.insert(9,2) = 0.005; C.insert(9,5) = 1.0;
+          C.insert(10,2) = 0.005; C.insert(10,5) = -1.0;
+          lhand->C = C;
+          cnoid::VectorX dl = Eigen::VectorXd::Zero(11);
+          lhand->dl = dl;
+          cnoid::VectorX du = 1e10 * Eigen::VectorXd::Ones(11);
+          du[0] = 2000.0;
+          lhand->du = du;
+          param->currentContactPoints.push_back(lhand);
+        }
+        {
+          std::shared_ptr<wholebodycontact_locomotion_planner::Contact> rhand = std::make_shared<wholebodycontact_locomotion_planner::Contact>();
+          rhand->name = "HANDBASE_R";
+          rhand->link1 = param->robot->link("HANDBASE_R");
+          rhand->localPose1.translation() = cnoid::Vector3(0.013,0.0,-0.069);
+          rhand->localPose2.translation() =  rhand->link1->p() + rhand->link1->R() * rhand->localPose1.translation();
+          rhand->localPose1.linear() = rhand->link1->R().transpose() * rhand->localPose2.linear();
+          Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6);
+          C.insert(0,2) = 1.0;
+          C.insert(1,0) = 1.0; C.insert(1,2) = 0.2;
+          C.insert(2,0) = -1.0; C.insert(2,2) = 0.2;
+          C.insert(3,1) = 1.0; C.insert(3,2) = 0.2;
+          C.insert(4,1) = -1.0; C.insert(4,2) = 0.2;
+          C.insert(5,2) = 0.05; C.insert(5,3) = 1.0;
+          C.insert(6,2) = 0.05; C.insert(6,3) = -1.0;
+          C.insert(7,2) = 0.05; C.insert(7,4) = 1.0;
+          C.insert(8,2) = 0.05; C.insert(8,4) = -1.0;
+          C.insert(9,2) = 0.005; C.insert(9,5) = 1.0;
+          C.insert(10,2) = 0.005; C.insert(10,5) = -1.0;
+          rhand->C = C;
+          cnoid::VectorX dl = Eigen::VectorXd::Zero(11);
+          rhand->dl = dl;
+          cnoid::VectorX du = 1e10 * Eigen::VectorXd::Ones(11);
+          du[0] = 2000.0;
+          rhand->du = du;
+          param->currentContactPoints.push_back(rhand);
+        }
+      } else if (crawl) {
         {
           std::shared_ptr<wholebodycontact_locomotion_planner::Contact> lknee = std::make_shared<wholebodycontact_locomotion_planner::Contact>();
           lknee->name = "LLEG_JOINT2";
@@ -408,6 +533,59 @@ namespace wholebodycontact_locomotion_planner_sample{
           rhand->du = du;
           param->currentContactPoints.push_back(rhand);
         }
+      } else {
+        {
+          std::shared_ptr<wholebodycontact_locomotion_planner::Contact> lleg = std::make_shared<wholebodycontact_locomotion_planner::Contact>();
+          lleg->name = "LLEG_JOINT5";
+          lleg->link1 = param->robot->link("LLEG_JOINT5");
+          lleg->localPose1.translation() = cnoid::Vector3(0.0,0.0,-0.1);
+          lleg->localPose2 = lleg->link1->T() * lleg->localPose1;
+          Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6);
+          C.insert(0,2) = 1.0;
+          C.insert(1,0) = 1.0; C.insert(1,2) = 0.2;
+          C.insert(2,0) = -1.0; C.insert(2,2) = 0.2;
+          C.insert(3,1) = 1.0; C.insert(3,2) = 0.2;
+          C.insert(4,1) = -1.0; C.insert(4,2) = 0.2;
+          C.insert(5,2) = 0.05; C.insert(5,3) = 1.0;
+          C.insert(6,2) = 0.05; C.insert(6,3) = -1.0;
+          C.insert(7,2) = 0.05; C.insert(7,4) = 1.0;
+          C.insert(8,2) = 0.05; C.insert(8,4) = -1.0;
+          C.insert(9,2) = 0.005; C.insert(9,5) = 1.0;
+          C.insert(10,2) = 0.005; C.insert(10,5) = -1.0;
+          lleg->C = C;
+          cnoid::VectorX dl = Eigen::VectorXd::Zero(11);
+          lleg->dl = dl;
+          cnoid::VectorX du = 1e10 * Eigen::VectorXd::Ones(11);
+          du[0] = 2000.0;
+          lleg->du = du;
+          param->currentContactPoints.push_back(lleg);
+        }
+        {
+          std::shared_ptr<wholebodycontact_locomotion_planner::Contact> rleg = std::make_shared<wholebodycontact_locomotion_planner::Contact>();
+          rleg->name = "RLEG_JOINT5";
+          rleg->link1 = param->robot->link("RLEG_JOINT5");
+          rleg->localPose1.translation() = cnoid::Vector3(0.0,0.0,-0.1);
+          rleg->localPose2 = rleg->link1->T() * rleg->localPose1;
+          Eigen::SparseMatrix<double,Eigen::RowMajor> C(11,6);
+          C.insert(0,2) = 1.0;
+          C.insert(1,0) = 1.0; C.insert(1,2) = 0.2;
+          C.insert(2,0) = -1.0; C.insert(2,2) = 0.2;
+          C.insert(3,1) = 1.0; C.insert(3,2) = 0.2;
+          C.insert(4,1) = -1.0; C.insert(4,2) = 0.2;
+          C.insert(5,2) = 0.05; C.insert(5,3) = 1.0;
+          C.insert(6,2) = 0.05; C.insert(6,3) = -1.0;
+          C.insert(7,2) = 0.05; C.insert(7,4) = 1.0;
+          C.insert(8,2) = 0.05; C.insert(8,4) = -1.0;
+          C.insert(9,2) = 0.005; C.insert(9,5) = 1.0;
+          C.insert(10,2) = 0.005; C.insert(10,5) = -1.0;
+          rleg->C = C;
+          cnoid::VectorX dl = Eigen::VectorXd::Zero(11);
+          rleg->dl = dl;
+          cnoid::VectorX du = 1e10 * Eigen::VectorXd::Ones(11);
+          du[0] = 2000.0;
+          rleg->du = du;
+          param->currentContactPoints.push_back(rleg);
+        }
       }
     }
 
@@ -426,15 +604,38 @@ namespace wholebodycontact_locomotion_planner_sample{
     }
     // environmental collision
     for (int i=0; i<param->robot->numLinks(); i++) {
-      if (!quadruped) {
-        if ((param->robot->link(i)->name() == "LLEG_JOINT3") || // JOINT3は膝下で手先が触れるなら本来は触れている
+      if (quadruped) {
+        if ((param->robot->link(i)->name() == "LLEG_JOINT3") || // JOINT3は膝下で膝上が触れるなら本来は触れている
+            (param->robot->link(i)->name() == "RLEG_JOINT3") ||
+            (param->robot->link(i)->name() == "LARM_JOINT5") || // JOINT5は前腕で肘下が触れるなら本来は触れている
+            (param->robot->link(i)->name() == "RARM_JOINT5") ||
+            (param->robot->link(i)->name() == "LARM_JOINT6") || // JOINT6は手首内側に入り込んだリンクなので考慮しなくて良い
+            (param->robot->link(i)->name() == "RARM_JOINT6") ||
+            (param->robot->link(i)->name() == "LARM_JOINT7") || // JOINT7とHANDBASEの間はfixed jointなので回避しようがない
+            (param->robot->link(i)->name() == "RARM_JOINT7") ||
+            (param->robot->link(i)->name() == "L_THUMB_JOINT0") ||
+            (param->robot->link(i)->name() == "L_THUMB_JOINT1") ||
+            (param->robot->link(i)->name() == "L_INDEX_JOINT0") ||
+            (param->robot->link(i)->name() == "L_INDEX_JOINT1") ||
+            (param->robot->link(i)->name() == "L_MIDDLE_JOINT0") ||
+            (param->robot->link(i)->name() == "L_LOCK_JOINT0") ||
+            (param->robot->link(i)->name() == "R_THUMB_JOINT0") ||
+            (param->robot->link(i)->name() == "R_THUMB_JOINT1") ||
+            (param->robot->link(i)->name() == "R_INDEX_JOINT0") ||
+            (param->robot->link(i)->name() == "R_INDEX_JOINT1") ||
+            (param->robot->link(i)->name() == "R_MIDDLE_JOINT0") ||
+            (param->robot->link(i)->name() == "R_LOCK_JOINT0")) continue;
+      } else if (crawl) {
+        if ((param->robot->link(i)->name() == "LLEG_JOINT3") || // JOINT3は膝下で膝上が触れるなら本来は触れている
             (param->robot->link(i)->name() == "RLEG_JOINT3") ||
             (param->robot->link(i)->name() == "LLEG_JOINT4") || // JOINT4は足首内側に入り込んだリンクなので考慮しなくて良い
             (param->robot->link(i)->name() == "RLEG_JOINT4") ||
-            (param->robot->link(i)->name() == "LARM_JOINT3") || // JOINT3は肘上で前腕が触れるなら本来は触れている
+            (param->robot->link(i)->name() == "LARM_JOINT3") || // JOINT3は肘上で肘下が触れるなら本来は触れている
             (param->robot->link(i)->name() == "RARM_JOINT3") ||
-            (param->robot->link(i)->name() == "LARM_JOINT4") || // JOINT4は肘下で前腕が触れるなら本来は触れている
-            (param->robot->link(i)->name() == "RARM_JOINT4") ||
+            // (param->robot->link(i)->name() == "LARM_JOINT4") || // JOINT3は肘上で肘下が触れるなら本来は触れている
+            // (param->robot->link(i)->name() == "RARM_JOINT4") ||
+            (param->robot->link(i)->name() == "LARM_JOINT5") || // JOINT5は前腕で肘下が触れるなら本来は触れている
+            (param->robot->link(i)->name() == "RARM_JOINT5") ||
             (param->robot->link(i)->name() == "LARM_JOINT6") || // JOINT6は手首内側に入り込んだリンクなので考慮しなくて良い
             (param->robot->link(i)->name() == "RARM_JOINT6") ||
             (param->robot->link(i)->name() == "LARM_JOINT7") || // JOINT7とHANDBASEの間はfixed jointなので回避しようがない
@@ -452,16 +653,14 @@ namespace wholebodycontact_locomotion_planner_sample{
             (param->robot->link(i)->name() == "R_MIDDLE_JOINT0") ||
             (param->robot->link(i)->name() == "R_LOCK_JOINT0")) continue;
       } else {
-        if ((param->robot->link(i)->name() == "LLEG_JOINT3") || // JOINT3は膝下で膝上が触れるなら本来は触れている
+        if ((param->robot->link(i)->name() == "LLEG_JOINT3") || // JOINT3は膝下で手先が触れるなら本来は触れている
             (param->robot->link(i)->name() == "RLEG_JOINT3") ||
             (param->robot->link(i)->name() == "LLEG_JOINT4") || // JOINT4は足首内側に入り込んだリンクなので考慮しなくて良い
             (param->robot->link(i)->name() == "RLEG_JOINT4") ||
-            (param->robot->link(i)->name() == "LARM_JOINT3") || // JOINT3は肘上で肘下が触れるなら本来は触れている
+            (param->robot->link(i)->name() == "LARM_JOINT3") || // JOINT3は肘上で前腕が触れるなら本来は触れている
             (param->robot->link(i)->name() == "RARM_JOINT3") ||
-            // (param->robot->link(i)->name() == "LARM_JOINT4") || // JOINT3は肘上で肘下が触れるなら本来は触れている
-            // (param->robot->link(i)->name() == "RARM_JOINT4") ||
-            (param->robot->link(i)->name() == "LARM_JOINT5") || // JOINT5は前腕で肘下が触れるなら本来は触れている
-            (param->robot->link(i)->name() == "RARM_JOINT5") ||
+            (param->robot->link(i)->name() == "LARM_JOINT4") || // JOINT4は肘下で前腕が触れるなら本来は触れている
+            (param->robot->link(i)->name() == "RARM_JOINT4") ||
             (param->robot->link(i)->name() == "LARM_JOINT6") || // JOINT6は手首内側に入り込んだリンクなので考慮しなくて良い
             (param->robot->link(i)->name() == "RARM_JOINT6") ||
             (param->robot->link(i)->name() == "LARM_JOINT7") || // JOINT7とHANDBASEの間はfixed jointなので回避しようがない
@@ -558,6 +757,7 @@ namespace wholebodycontact_locomotion_planner_sample{
       constraint->precision() = 0.03;
       constraint->contactWeight() = 1;
       constraint->normalGradientDistance() = 0.03;
+      constraint->contactWeight() = 3.0;
       constraint->weight() << 1.0, 1.0, 1.0, 0.0, 0.0, 0.0; // rollやpitchを正確にすると、足裏の端で接触点探索の結果足の甲にいったときに、ほぼ最短接触点であるために接触点は変化せず、無理につま先立ちしようとしてIKがとけない、ということになる.
       constraint->debugLevel() = 0;
       constraint->updateBounds();
