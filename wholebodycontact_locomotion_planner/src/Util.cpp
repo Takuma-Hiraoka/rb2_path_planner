@@ -117,8 +117,7 @@ namespace wholebodycontact_locomotion_planner{
           std::shared_ptr<ik_constraint2::PositionConstraint> constraint = std::make_shared<ik_constraint2::PositionConstraint>();
           constraint->A_link() = nextContacts[i]->link1;
           if ((ikState==IKState::DETACH_FIXED) ||
-              (ikState==IKState::ATTACH_FIXED) ||
-                     (ikState==IKState::SLIDE)) {
+              (ikState==IKState::ATTACH_FIXED)) {
             for (int j=0; j<stopContacts.size(); j++) {
               if (nextContacts[i]->name == stopContacts[j]->name) {
                 constraint->A_localpos() = stopContacts[j]->localPose1;
@@ -126,7 +125,8 @@ namespace wholebodycontact_locomotion_planner{
             }
           } else if ((ikState==IKState::DETACH) ||
                      (ikState==IKState::ATTACH) ||
-                     (ikState==IKState::DETACH_SEARCH)) {
+                     (ikState==IKState::DETACH_SEARCH)  ||
+                     (ikState==IKState::SLIDE)) {
             constraint->A_localpos() = nextContacts[i]->localPose1;
           } else {
             std::cerr << "Undefined IKState !!" << std::endl;
@@ -168,8 +168,8 @@ namespace wholebodycontact_locomotion_planner{
               if (nextContacts[i]->name == stopContacts[j]->name) {
                 constraint->weight()[5] = 1.0e-3 / constraint->precision(); // 摩擦制約の関係上一致させる必要がある
                 poses.push_back(nextContacts[i]->localPose2);
-                cnoid::Vector3 diff = (stopContacts[j]->link1->T() * stopContacts[j]->localPose1).rotation().transpose() * (nextContacts[i]->localPose2.translation() - stopContacts[j]->localPose2.translation());
-                cnoid::Matrix3 diffR = ((stopContacts[j]->link1->T() * stopContacts[j]->localPose1).rotation().transpose() * (nextContacts[i]->link1->T() * nextContacts[i]->localPose1).rotation());
+                cnoid::Vector3 diff = (stopContacts[j]->link1->T() * constraint->A_localpos()).rotation().transpose() * (nextContacts[i]->localPose2.translation() - (stopContacts[j]->link1->T() * constraint->A_localpos()).translation());
+                cnoid::Matrix3 diffR = ((stopContacts[j]->link1->T() * constraint->A_localpos()).rotation().transpose() * (nextContacts[i]->link1->T() * nextContacts[i]->localPose1).rotation());
                 Eigen::SparseMatrix<double,Eigen::RowMajor> A(3,6);
                 A.insert(0,0) = diff[0] > 0 ? -1.0 : 1.0; A.insert(0,2) = 0.2;
                 A.insert(1,1) = diff[1] > 0 ? -1.0 : 1.0; A.insert(1,2) = 0.2;
