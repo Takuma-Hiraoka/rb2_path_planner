@@ -17,6 +17,10 @@ namespace wholebodycontact_locomotion_planner{
     int maxContactIter = 1000; // 接触一つを動かしていく上限回数
     int moveContactsLevel = 3; // solveWBLP時に接触の切り離し・増加を行う際に、対象とするcontact linkのmoveContactLelvel等親までのcontact linkを同時に切り離し・増加する. 隣接リンクが接触しているのに片方だけを動かすのは自由度的に困難なため.
     double positionConstraintPrecision = 1e-3; // 複数リンク接触を行う場合、収束判定を緩くしないと同時にpositionConstraintをみたすことができない
+    double envCollisionDefaultTolerance = 0.04; // 環境干渉回避制約. 触れる直前のリンクはこれより小さい値に変える.
+    double envCollisionDefaultPrecision = 0.03;
+    double initialBreakHeight = 0.05; // はじめに今触れている接触を離す際の距離.
+    cnoid::Vector6 goalWeight;
     cnoid::Vector6 positionConstraintWeight;
     std::shared_ptr<choreonoid_viewer::Viewer> viewer = nullptr;
     cnoid::BodyPtr robot;
@@ -35,6 +39,7 @@ namespace wholebodycontact_locomotion_planner{
     trajectory_optimizer::TOParam toParam;
 
     WBLPParam() {
+      goalWeight << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
       positionConstraintWeight << 1.0, 1.0, 1.0, 1.0, 1.0, 0.01;
       gikRootParam.range = 0.05;
       gikRootParam.delta = 0.2;

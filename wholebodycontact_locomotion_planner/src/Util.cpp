@@ -13,8 +13,6 @@ namespace wholebodycontact_locomotion_planner{
       variables.push_back(param->variables[i]);
     }
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints0;
-    double defaultTolerance = 0.04;
-    double defaultPrecision = 0.03;
     for (int i=0; i<param->constraints.size(); i++) {
       if (typeid(*(param->constraints[i]))==typeid(ik_constraint2_distance_field::DistanceFieldCollisionConstraint)) {
         bool skip=false;
@@ -37,8 +35,6 @@ namespace wholebodycontact_locomotion_planner{
               // DETACH時もすでに触れているときの挙動を回避するため
               skip = true;
             } else {
-              defaultTolerance = std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->tolerance();
-              defaultPrecision = std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->precision();
               std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->tolerance() = 0.02;
               std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->precision() = 0.01;
             }
@@ -261,8 +257,8 @@ namespace wholebodycontact_locomotion_planner{
         std::static_pointer_cast<ik_constraint2_distance_field::DistanceFieldCollisionConstraint>(param->constraints[i])->ignoreBoundingBox().clear();
         for (int j=0; j<nextContacts.size();j++) {
           if (nextContacts[j]->name == std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->A_link()->name()) {
-            std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->tolerance() = defaultTolerance;
-            std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->precision() = defaultPrecision;
+            std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->tolerance() = param->envCollisionDefaultTolerance;
+            std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->precision() = param->envCollisionDefaultPrecision;
           }
         }
       }

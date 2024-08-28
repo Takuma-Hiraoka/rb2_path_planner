@@ -115,7 +115,7 @@ namespace wholebodycontact_locomotion_planner{
         constraint->A_localpos() = param->currentContactPoints[i]->localPose1;
         constraint->B_link() = param->currentContactPoints[i]->link2;
         constraint->B_localpos() = param->currentContactPoints[i]->localPose2;
-        constraint->B_localpos().translation() += param->currentContactPoints[i]->localPose2.linear() * cnoid::Vector3(0,0,0.05); // 0.03だけ離す
+        constraint->B_localpos().translation() += param->currentContactPoints[i]->localPose2.linear() * cnoid::Vector3(0,0,param->initialBreakHeight);
         constraint->eval_link() = nullptr;
         breakConstraints.push_back(constraint);
       }
@@ -135,6 +135,7 @@ namespace wholebodycontact_locomotion_planner{
       goal_->A_link() = param->robot->rootLink();
       goal_->B_link() = nullptr;
       goal_->B_localpos() = goal;
+      goal_->weight() = param->goalWeight;
       goal_->precision() = 1e-2;
       goals.push_back(goal_);
     }
