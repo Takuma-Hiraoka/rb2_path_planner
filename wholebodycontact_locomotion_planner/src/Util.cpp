@@ -91,14 +91,14 @@ namespace wholebodycontact_locomotion_planner{
               constraint->B_localpos() = nextContacts[i]->localPose2;
               if ((ikState == IKState::SWING) || (ikState == IKState::CONTACT_SEARCH)) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.03); // 0.03だけ離す
               constraint->eval_localR() = constraint->B_localpos().linear();
-              constraint->contact_pos_link()->T() = constraint->A_localpos();
-              constraints2.push_back(constraint);
-              {
+              if (constraint->contact_pos_link()){
                 variables.push_back(constraint->contact_pos_link());
+                constraint->contact_pos_link()->T() = constraint->A_localpos();
                 std::vector<double> dqWeight = std::vector<double>(6,1);
                 std::copy(dqWeight.begin(), dqWeight.end(), std::back_inserter(param->pikParam.dqWeight));
                 std::copy(dqWeight.begin(), dqWeight.end(), std::back_inserter(param->gikParam.pikParam.dqWeight));
               }
+              constraints2.push_back(constraint);
               if (ikState == IKState::CONTACT_SEARCH) {
                 poses.push_back(nextContacts[i]->localPose2);
                 As.emplace_back(0,6);
@@ -162,7 +162,7 @@ namespace wholebodycontact_locomotion_planner{
           if (ikState==IKState::SLIDE) {
             for (int j=0; j<stopContacts.size(); j++) {
               if (nextContacts[i]->name == stopContacts[j]->name) {
-                constraint->weight()[5] = 1.0e-3 / constraint->precision(); // 摩擦制約の関係上一致させる必要がある
+                constraint->weight()[5] = constraint->precision() / 1e-3; // 摩擦制約の関係上一致させる必要がある
                 poses.push_back(nextContacts[i]->localPose2);
                 cnoid::Vector3 diff = (stopContacts[j]->link1->T() * constraint->A_localpos()).rotation().transpose() * (nextContacts[i]->localPose2.translation() - (stopContacts[j]->link1->T() * constraint->A_localpos()).translation());
                 cnoid::Matrix3 diffR = ((stopContacts[j]->link1->T() * constraint->A_localpos()).rotation().transpose() * (nextContacts[i]->link1->T() * nextContacts[i]->localPose1).rotation());

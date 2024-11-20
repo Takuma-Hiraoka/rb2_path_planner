@@ -380,7 +380,7 @@ namespace wholebodycontact_locomotion_planner{
             break;
           }
         }
-        idx--;
+        idx = std::min(idx, subgoalIdQueue.back());
         if(idx > pathId) { // detach-attachで一つでも進むことができる場合. TODO 解けないケースの対処法
 
           global_inverse_kinematics_solver::frame2Link(lastLandingFrame, param->variables);
@@ -401,7 +401,7 @@ namespace wholebodycontact_locomotion_planner{
           param->robot->calcForwardKinematics(false);
           param->robot->calcCenterOfMass();
           // 選ばれたcontactだけ、slideでIKが解けなくなるまでguidePathを進める
-          for (idx=pathId+1; idx<=subgoalIdQueue.back(); idx++) {
+          for (idx=pathId; idx<=subgoalIdQueue.back(); idx++) {
             std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
             frame2Nominals(guidePath[idx].first, param->variables, nominals);
             std::vector<std::shared_ptr<Contact> > moveContact;
@@ -423,7 +423,7 @@ namespace wholebodycontact_locomotion_planner{
             global_inverse_kinematics_solver::link2Frame(param->variables, frame);
             path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (frame, currentContact));
           }
-          idx--;
+          idx = std::min(idx, subgoalIdQueue.back());
           // TODO
           if(idx > pathId) {
           } else { // detach-attachでもslideでも動けない
