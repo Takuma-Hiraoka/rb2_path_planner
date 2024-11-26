@@ -180,7 +180,15 @@ namespace wholebodycontact_locomotion_planner{
             std::shared_ptr<Contact> contact = std::make_shared<Contact>();
             contact->name = it->second->reachabilityConstraints[j]->A_link()->name();
             contact->link1 = it->second->reachabilityConstraints[j]->A_link();
-            contact->localPose1.translation() =  it->second->reachabilityConstraints[j]->A_currentLocalp(); // WBLP時に接触点を決定する際に初期解として使えるように、最近傍点をいれておく
+            if(param->useNearestLocalPos) {
+              contact->localPose1.translation() =  it->second->reachabilityConstraints[j]->A_currentLocalp(); // WBLP時に接触点を決定する際に初期解として使えるように、最近傍点をいれておく
+            } else {
+              for (int c=0; c<param->currentContactPoints.size(); c++) {
+                if (contact->name == param->currentContactPoints[c]->link1->name()) {
+                  contact->localPose1 = param->currentContactPoints[c]->localPose1;
+                }
+              }
+            }
             contact->link2 = nullptr;
             contact->localPose2.translation() = it->second->reachabilityConstraints[j]->B_currentLocalp();
             cnoid::Vector3d z_axis = it->second->reachabilityConstraints[j]->currentDirection();

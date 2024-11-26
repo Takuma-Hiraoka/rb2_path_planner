@@ -271,8 +271,6 @@ namespace wholebodycontact_locomotion_planner{
           if (nextContacts[i]->name == param->bodyContactConstraints[j]->A_link()->name()) {
             // そのままparam->bodyContactConstraints[j]->A_localpos();を代入すると、接触点探索の結果角を超えて姿勢が大きく変わったときもその姿勢がnextContactとなり、currentContactに代入されて次の不動接触目標とされてしまう.
             // 次の不動接触目標とされても良いように、現在の環境の姿勢と合わせておく
-            // 位置については、detachした位置にしないとbody_contact_constraintが近傍として扱ってくれない可能性がある
-            nextContacts[i]->localPose1.translation() = param->bodyContactConstraints[j]->A_localpos().translation();
             nextContacts[i]->localPose1.linear() = param->bodyContactConstraints[j]->A_link()->R().transpose() * param->bodyContactConstraints[j]->B_localpos().linear();
           }
         }
