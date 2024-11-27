@@ -385,6 +385,7 @@ namespace wholebodycontact_locomotion_planner{
           } else {
             // 探索したときに次の接触のローカル座標を変更しているのでもとに戻す
             for (int i=0;i<moveContact.size();i++) moveContact[i]->localPose1 = prevNextContactLocalPose1s[i];
+            idx--; // 着地できないのでdetach-attachで進めるのは一つ前のidxまで
             break;
           }
         }
@@ -417,7 +418,10 @@ namespace wholebodycontact_locomotion_planner{
               if (std::find(moveContactLinks.begin(), moveContactLinks.end(), guidePath[idx].second[i]->name) != moveContactLinks.end()) moveContact.push_back(guidePath[idx].second[i]);
             }
 
-            if (!solveContactIK(param, currentContact, moveContact, nominals, IKState::SLIDE)) break;
+            if (!solveContactIK(param, currentContact, moveContact, nominals, IKState::SLIDE)) {
+              idx--; // slideで進むめるのは一つ前のidxまで
+              break;
+            }
 
             if(param->debugLevel >= 3){
               if(param->viewer){
