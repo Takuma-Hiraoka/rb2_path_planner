@@ -263,14 +263,16 @@ namespace wholebodycontact_locomotion_planner{
         }
       }
     }
-    if ((ikState==IKState::ATTACH_FIXED) || (ikState==IKState::SWING) || (ikState == IKState::CONTACT_SEARCH)) {
+    if ((ikState==IKState::ATTACH_SEARCH) || (ikState==IKState::SWING) || (ikState == IKState::CONTACT_SEARCH)) {
       param->pikParam.dqWeight.resize(6+param->robot->numJoints());
       param->gikParam.pikParam.dqWeight.resize(6+param->robot->numJoints());
       for (int i=0; i<nextContacts.size(); i++) {
         for (int j=0; j<param->bodyContactConstraints.size(); j++) {
           if (nextContacts[i]->name == param->bodyContactConstraints[j]->A_link()->name()) {
+            // nextContactは次のcurrentContactに使われる‥このため接触局所位置を変えたならnextContact側に反映する必要がある.
             // そのままparam->bodyContactConstraints[j]->A_localpos();を代入すると、接触点探索の結果角を超えて姿勢が大きく変わったときもその姿勢がnextContactとなり、currentContactに代入されて次の不動接触目標とされてしまう.
             // 次の不動接触目標とされても良いように、現在の環境の姿勢と合わせておく
+            nextContacts[i]->localPose1.translation() = param->bodyContactConstraints[j]->A_localpos().translation();
             nextContacts[i]->localPose1.linear() = param->bodyContactConstraints[j]->A_link()->R().transpose() * param->bodyContactConstraints[j]->B_localpos().linear();
           }
         }

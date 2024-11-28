@@ -367,7 +367,12 @@ namespace wholebodycontact_locomotion_planner{
               prevNextContactLocalPose1s.push_back(guidePath[idx].second[i]->localPose1);
             }
           }
-          if (!solveContactIK(param, currentContact, moveContact, nominals, idx==pathId ? IKState::DETACH_FIXED : IKState::SWING)) break;
+          if (!solveContactIK(param, currentContact, moveContact, nominals, idx==pathId ? IKState::DETACH_FIXED : IKState::SWING)) {
+            // 探索したときに次の接触のローカル座標を変更しているのでもとに戻す
+            for (int i=0;i<moveContact.size();i++) moveContact[i]->localPose1 = prevNextContactLocalPose1s[i];
+            idx--; // swingできないのでdetach-attachで進めるのは一つ前のidxまで
+            break;
+          }
           global_inverse_kinematics_solver::link2Frame(param->variables, frame);
           if (solveContactIK(param, currentContact, moveContact, nominals, idx==pathId ? IKState::ATTACH_FIXED : IKState::ATTACH) || solveContactIK(param, currentContact, moveContact, nominals, idx==pathId ? IKState::ATTACH_FIXED : IKState::ATTACH_SEARCH)) { // 着地も可能
             path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > >(frame, currentContact)); // TODO currentContactからmoveContactを除くこと
@@ -419,7 +424,7 @@ namespace wholebodycontact_locomotion_planner{
             }
 
             if (!solveContactIK(param, currentContact, moveContact, nominals, IKState::SLIDE)) {
-              idx--; // slideで進むめるのは一つ前のidxまで
+              idx--; // slideで進めるのは一つ前のidxまで
               break;
             }
 
