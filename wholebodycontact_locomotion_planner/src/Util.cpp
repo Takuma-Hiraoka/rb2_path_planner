@@ -89,7 +89,7 @@ namespace wholebodycontact_locomotion_planner{
               }
               constraint->B_link() = nextContacts[i]->link2;
               constraint->B_localpos() = nextContacts[i]->localPose2;
-              if ((ikState == IKState::SWING) || (ikState == IKState::CONTACT_SEARCH)) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.03); // 0.03だけ離す
+              if ((ikState == IKState::SWING) || (ikState == IKState::CONTACT_SEARCH)) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.02); // 0.03だけ離す
               constraint->eval_localR() = constraint->B_localpos().linear();
               if (constraint->contact_pos_link()){
                 variables.push_back(constraint->contact_pos_link());
@@ -139,7 +139,7 @@ namespace wholebodycontact_locomotion_planner{
           }
           if ((ikState==IKState::DETACH) ||
               (ikState==IKState::DETACH_FIXED) ||
-              (ikState==IKState::DETACH_SEARCH)) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.03);
+              (ikState==IKState::DETACH_SEARCH)) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.02);
           if ((ikState==IKState::ATTACH) ||
               (ikState==IKState::ATTACH_FIXED) ||
               (ikState==IKState::SLIDE)) calcIgnoreBoundingBox(param->constraints, nextContacts[i], 3);

@@ -311,20 +311,30 @@ namespace wholebodycontact_locomotion_planner{
         }
 
         // moveCandidateのうち、guidePath[subgoalIdQueue.back()]と比較して最も離れているcontactを一つ選ぶ
-        int moveContactId; // in moveCandidate
+        // moveCandidateのうち、guidePath[subgoalIdQueue.back()]に進むことでルートリンク位置に近づくcontactを一つ選ぶ 
+       int moveContactId; // in moveCandidate
         int moveContactPathId; // in guidePath
         double maxDist = 0;
+        double minDist = 1000;
         for (int i=0; i<moveCandidate.size(); i++) {
           for (int j=0; j<guidePath[subgoalIdQueue.back()].second.size(); j++) {
             if (moveCandidate[i]->name == guidePath[subgoalIdQueue.back()].second[j]->name) {
-              double dist = (moveCandidate[i]->localPose2.translation() - guidePath[subgoalIdQueue.back()].second[j]->localPose2.translation()).array().abs().sum();
-              cnoid::AngleAxis angleAxis = cnoid::AngleAxis(moveCandidate[i]->localPose2.linear().transpose() * guidePath[subgoalIdQueue.back()].second[j]->localPose2.linear());
-              dist += (angleAxis.angle()*angleAxis.axis()).array().abs().sum();
-              if (dist > maxDist) {
-                maxDist = dist;
+              double prevDist = (moveCandidate[i]->localPose2.translation() - param->robot->rootLink()->p()).array().abs().sum();
+              double nextDist = (guidePath[subgoalIdQueue.back()].second[j]->localPose2.translation() - param->robot->rootLink()->p()).array().abs().sum();
+              double dist = nextDist - prevDist;
+              if (dist < minDist) {
+                minDist = dist;
                 moveContactId = i;
                 moveContactPathId = j;
               }
+              // double dist = (moveCandidate[i]->localPose2.translation() - guidePath[subgoalIdQueue.back()].second[j]->localPose2.translation()).array().abs().sum();
+              // cnoid::AngleAxis angleAxis = cnoid::AngleAxis(moveCandidate[i]->localPose2.linear().transpose() * guidePath[subgoalIdQueue.back()].second[j]->localPose2.linear());
+              // dist += (angleAxis.angle()*angleAxis.axis()).array().abs().sum();
+              // if (dist > maxDist) {
+              //   maxDist = dist;
+              //   moveContactId = i;
+              //   moveContactPathId = j;
+              // }
             }
           }
         }
@@ -367,7 +377,7 @@ namespace wholebodycontact_locomotion_planner{
               prevNextContactLocalPose1s.push_back(guidePath[idx].second[i]->localPose1);
             }
           }
-          if (!solveContactIK(param, currentContact, moveContact, nominals, idx==pathId ? IKState::DETACH_FIXED : IKState::SWING)) {
+          if (!solveContactIK(param, currentContact, moveContact, nominals, idx==pathId ? IKState::DETACH_FIXED : IKState::DETACH)) {
             // 探索したときに次の接触のローカル座標を変更しているのでもとに戻す
             for (int i=0;i<moveContact.size();i++) moveContact[i]->localPose1 = prevNextContactLocalPose1s[i];
             idx--; // swingできないのでdetach-attachで進めるのは一つ前のidxまで
