@@ -36,7 +36,7 @@ namespace wholebodycontact_locomotion_planner{
               skip = true;
             } else {
               std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->tolerance() = 0.02;
-              std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->precision() = 0.01;
+              std::static_pointer_cast<ik_constraint2::CollisionConstraint>(param->constraints[i])->precision() = 0.015;
             }
           }
         }
@@ -248,6 +248,7 @@ namespace wholebodycontact_locomotion_planner{
     //   constraints2[i]->debugLevel() = 2;
     //   constraints2[i]->updateBounds();
     //   std::cerr << "constraints2: "<< constraints2[i]->isSatisfied() << std::endl;
+    //   constraints2[i]->debugLevel() = 0;
     // }
     // for ( int i=0; i<nominals.size(); i++ ) {
     //   std::cerr << "nominals: "<< nominals[i]->isSatisfied() << std::endl;
