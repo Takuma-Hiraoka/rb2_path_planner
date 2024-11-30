@@ -319,22 +319,25 @@ namespace wholebodycontact_locomotion_planner{
         for (int i=0; i<moveCandidate.size(); i++) {
           for (int j=0; j<guidePath[subgoalIdQueue.back()].second.size(); j++) {
             if (moveCandidate[i]->name == guidePath[subgoalIdQueue.back()].second[j]->name) {
-              double prevDist = (moveCandidate[i]->localPose2.translation() - param->robot->rootLink()->p()).array().abs().sum();
-              double nextDist = (guidePath[subgoalIdQueue.back()].second[j]->localPose2.translation() - param->robot->rootLink()->p()).array().abs().sum();
-              double dist = nextDist - prevDist;
-              if (dist < minDist) {
-                minDist = dist;
-                moveContactId = i;
-                moveContactPathId = j;
-              }
-              // double dist = (moveCandidate[i]->localPose2.translation() - guidePath[subgoalIdQueue.back()].second[j]->localPose2.translation()).array().abs().sum();
-              // cnoid::AngleAxis angleAxis = cnoid::AngleAxis(moveCandidate[i]->localPose2.linear().transpose() * guidePath[subgoalIdQueue.back()].second[j]->localPose2.linear());
-              // dist += (angleAxis.angle()*angleAxis.axis()).array().abs().sum();
-              // if (dist > maxDist) {
-              //   maxDist = dist;
-              //   moveContactId = i;
-              //   moveContactPathId = j;
-              // }
+              if (param->useNearRootMoveContact) {
+                double prevDist = (moveCandidate[i]->localPose2.translation() - param->robot->rootLink()->p()).array().abs().sum();
+                double nextDist = (guidePath[subgoalIdQueue.back()].second[j]->localPose2.translation() - param->robot->rootLink()->p()).array().abs().sum();
+                double dist = nextDist - prevDist;
+                if (dist < minDist) {
+                  minDist = dist;
+                  moveContactId = i;
+                  moveContactPathId = j;
+                }
+              } else {
+                double dist = (moveCandidate[i]->localPose2.translation() - guidePath[subgoalIdQueue.back()].second[j]->localPose2.translation()).array().abs().sum();
+                cnoid::AngleAxis angleAxis = cnoid::AngleAxis(moveCandidate[i]->localPose2.linear().transpose() * guidePath[subgoalIdQueue.back()].second[j]->localPose2.linear());
+                dist += (angleAxis.angle()*angleAxis.axis()).array().abs().sum();
+                if (dist > maxDist) {
+                  maxDist = dist;
+                  moveContactId = i;
+                  moveContactPathId = j;
+                }
+              } // useNearRootMoveContact
             }
           }
         }
@@ -377,7 +380,7 @@ namespace wholebodycontact_locomotion_planner{
               prevNextContactLocalPose1s.push_back(guidePath[idx].second[i]->localPose1);
             }
           }
-          if (!solveContactIK(param, currentContact, moveContact, nominals, idx==pathId ? IKState::DETACH_FIXED : IKState::DETACH)) {
+          if (!solveContactIK(param, currentContact, moveContact, nominals, idx==pathId ? IKState::DETACH_FIXED : (param->useSwing ? IKState::SWING : IKState::DETACH))) {
             // 探索したときに次の接触のローカル座標を変更しているのでもとに戻す
             for (int i=0;i<moveContact.size();i++) moveContact[i]->localPose1 = prevNextContactLocalPose1s[i];
             idx--; // swingできないのでdetach-attachで進めるのは一つ前のidxまで
@@ -578,7 +581,7 @@ namespace wholebodycontact_locomotion_planner{
           // 接触を追加する
           std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
           frame2Nominals(guidePath[nextId].first, param->variables, nominals);
-          if(!solveContactIK(param, currentContact, attachContact, nominals, IKState::SWING)) {
+          if(!solveContactIK(param, currentContact, attachContact, nominals, (param->useSwing ? IKState::SWING : IKState::DETACH))) {
             std::cerr << "cannot pre attach contact" << std::endl;
             break;
           }

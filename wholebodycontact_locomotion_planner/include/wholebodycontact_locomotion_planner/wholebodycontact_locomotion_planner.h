@@ -35,6 +35,8 @@ namespace wholebodycontact_locomotion_planner{
     global_inverse_kinematics_solver::GIKParam gikParam;
     prioritized_inverse_kinematics_solver2::IKParam pikParam;
     bool OptimizeTrajectory = false; // 関節角度軌道を最適化、近いstate同士をショートカットするかどうか. もともと粗い軌道でありショートカットできる数は少なく、計算時間が増えるデメリットのほうが大きい.
+    bool useNearRootMoveContact = true; // 動かしてルートリンクにより近づく接触を優先的に動かす. fakseなら移動量が一番大きい接触を優先的に動かす. TODO あまり変わらない？
+    bool useSwing = false; // 空中から空中へ、接触点探索しながら移動するかどうか. TODO あまり変わらない？
     bool useSwingGIK = false; // TODO なぜか遅い
     bool useNearestLocalPos = true; // CBPath時に出てきた最近接リンク座標を接触ローカル位置に置き換えるかどうか‥trueならswingした後は最近接座標をローカル位置にし、falseならずっと初期ローカル位置のまま‥
     trajectory_optimizer::TOParam toParam;
