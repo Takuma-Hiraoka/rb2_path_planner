@@ -553,7 +553,7 @@ namespace wholebodycontact_locomotion_planner{
           // まず接触を離す
           std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
           frame2Nominals(guidePath[nextId].first, param->variables, nominals);
-          if(!solveContactIK(param, currentContact, detachContact, nominals, IKState::DETACH_FIXED)) {
+          if(!solveContactIK(param, currentContact, detachContact, nominals, IKState::DETACH_FIXED) && !(param->useSwing && solveContactIK(param, currentContact, detachContact, nominals, IKState::SWING))) {
             std::cerr << "cannot detach contact" << std::endl;
             break;
           }

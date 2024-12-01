@@ -208,8 +208,8 @@ namespace wholebodycontact_locomotion_planner{
                                                                    param->pikParam
                                                                    );
     if (!solved && // 単に勾配を降りるだけで解けるなら大域探索は行わない
-        ((ikState==IKState::DETACH) ||
-         (ikState==IKState::DETACH_FIXED) ||
+        ((!param->useSwing && (ikState==IKState::DETACH)) || // この後swingで接触点探索を行うので大域探索はswingでやる
+         (!param->useSwing && (ikState==IKState::DETACH_FIXED)) || // この後swingで接触点探索を行うので大域探索はswingでやる
          (ikState==IKState::ATTACH) ||
          (ikState==IKState::ATTACH_FIXED) ||
          (ikState==IKState::ATTACH_SEARCH) ||
