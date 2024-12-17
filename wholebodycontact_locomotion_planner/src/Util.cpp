@@ -1,6 +1,7 @@
 #include <wholebodycontact_locomotion_planner/Util.h>
 #include <cnoid/MeshExtractor>
 #include <choreonoid_qhull/choreonoid_qhull.h>
+#include <ik_constraint2_scfr/SlideScfrConstraint.h>
 
 namespace wholebodycontact_locomotion_planner{
   bool solveContactIK(const std::shared_ptr<WBLPParam>& param,
@@ -44,7 +45,7 @@ namespace wholebodycontact_locomotion_planner{
       }
       constraints0.push_back(param->constraints[i]);
     }
-    std::shared_ptr<ik_constraint2_scfr::ScfrConstraint> scfrConstraint = std::make_shared<ik_constraint2_scfr::ScfrConstraint>();
+    std::shared_ptr<ik_constraint2_slide_scfr::SlideScfrConstraint> scfrConstraint = std::make_shared<ik_constraint2_slide_scfr::SlideScfrConstraint>();
     scfrConstraint->A_robot() = param->robot;
     std::vector<cnoid::Isometry3> poses;
     std::vector<Eigen::SparseMatrix<double,Eigen::RowMajor> > As;
@@ -70,6 +71,7 @@ namespace wholebodycontact_locomotion_planner{
         constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
         constraints1.push_back(constraint);
         poses.push_back(stopContacts[i]->localPose2);
+        scfrConstraint->positionConstraints().push_back(constraint);
         As.emplace_back(0,6);
         bs.emplace_back(0);
         Cs.push_back(stopContacts[i]->C);
@@ -163,28 +165,14 @@ namespace wholebodycontact_locomotion_planner{
             for (int j=0; j<stopContacts.size(); j++) {
               if (nextContacts[i]->name == stopContacts[j]->name) {
                 constraint->weight()[5] = constraint->precision() / 1e-3; // 摩擦制約の関係上一致させる必要がある
-                poses.push_back(nextContacts[i]->localPose2);
-                cnoid::Vector3 diff = (stopContacts[j]->link1->T() * constraint->A_localpos()).rotation().transpose() * (nextContacts[i]->localPose2.translation() - (stopContacts[j]->link1->T() * constraint->A_localpos()).translation());
-                cnoid::Matrix3 diffR = ((stopContacts[j]->link1->T() * constraint->A_localpos()).rotation().transpose() * (nextContacts[i]->link1->T() * nextContacts[i]->localPose1).rotation());
-                Eigen::SparseMatrix<double,Eigen::RowMajor> A(3,6);
-                A.insert(0,0) = diff[0] > 0 ? -1.0 : 1.0; A.insert(0,2) = 0.2;
-                A.insert(1,1) = diff[1] > 0 ? -1.0 : 1.0; A.insert(1,2) = 0.2;
-                A.insert(2,5) = cnoid::rpyFromRot(diffR)[2] > 0 ? -1.0 : 1.0; A.insert(2,2) = 0.005;
-                As.push_back(A);
-                cnoid::VectorX b = Eigen::VectorXd::Zero(3);
-                bs.push_back(b);
-                Eigen::SparseMatrix<double,Eigen::RowMajor> C(5,6); // TODO 干渉形状から出す？
-                C.insert(0,2) = 1.0;
-                C.insert(1,2) = 0.05; C.insert(1,3) = 1.0;
-                C.insert(2,2) = 0.05; C.insert(2,3) = -1.0;
-                C.insert(3,2) = 0.05; C.insert(3,4) = 1.0;
-                C.insert(4,2) = 0.05; C.insert(4,4) = -1.0;
-                Cs.push_back(C);
-                cnoid::VectorX dl = Eigen::VectorXd::Zero(5);
-                dls.push_back(dl);
-                cnoid::VectorX du = 1e10 * Eigen::VectorXd::Ones(5);
-                du[0] = 20000.0;
-                dus.push_back(du);
+                scfrConstraint->positionConstraints().push_back(constraint);
+                poses.push_back(stopContacts[j]->link1->T() * constraint->A_localpos());
+                As.emplace_back(0,6);
+                bs.emplace_back(0);
+                Cs.push_back(stopContacts[i]->C);
+                dls.push_back(stopContacts[i]->dl);
+                dus.push_back(stopContacts[i]->du);
+                calcIgnoreBoundingBox(param->constraints, stopContacts[i], 3);
               }
             }
           }
