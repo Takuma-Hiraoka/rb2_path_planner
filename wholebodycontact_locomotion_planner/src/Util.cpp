@@ -69,6 +69,7 @@ namespace wholebodycontact_locomotion_planner{
         constraint->B_localpos() = stopContacts[i]->localPose2;
         constraint->eval_link() = nullptr;
         constraint->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
+        if (param->useSlide) constraint->weight()[5] = 0.0;
         constraints1.push_back(constraint);
         poses.push_back(stopContacts[i]->localPose2);
         scfrConstraint->positionConstraints().push_back(constraint);

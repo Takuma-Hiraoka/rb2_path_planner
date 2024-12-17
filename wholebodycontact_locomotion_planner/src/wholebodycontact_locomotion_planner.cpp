@@ -422,7 +422,7 @@ namespace wholebodycontact_locomotion_planner{
           }
 
           path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (lastLandingFrame, currentContact)); // TODO currentContactからmoveContactを除くこと
-        } else { // detach-attachでは1stepも進めない場合
+        } else if (param->useSlide){ // detach-attachでは1stepも進めない場合
           path.clear();
           global_inverse_kinematics_solver::frame2Link(pathInitialFrame, param->variables);
           param->robot->calcForwardKinematics(false);

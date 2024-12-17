@@ -39,6 +39,7 @@ namespace wholebodycontact_locomotion_planner{
     bool useSwing = false; // 空中から空中へ、接触点探索しながら移動するかどうか. TODO あまり変わらない？
     bool useSwingGIK = false; // TODO なぜか遅い
     bool useNearestLocalPos = true; // CBPath時に出てきた最近接リンク座標を接触ローカル位置に置き換えるかどうか‥trueならswingした後は最近接座標をローカル位置にし、falseならずっと初期ローカル位置のまま‥
+    bool useSlide = true;
     trajectory_optimizer::TOParam toParam;
 
     WBLPParam() {
