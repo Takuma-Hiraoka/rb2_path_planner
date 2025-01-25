@@ -388,7 +388,17 @@ namespace wholebodycontact_locomotion_planner{
           }
           global_inverse_kinematics_solver::link2Frame(param->variables, frame);
           if (solveContactIK(param, currentContact, moveContact, nominals, idx==pathId ? IKState::ATTACH_FIXED : IKState::ATTACH) || solveContactIK(param, currentContact, moveContact, nominals, idx==pathId ? IKState::ATTACH_FIXED : IKState::ATTACH_SEARCH)) { // 着地も可能
-            path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > >(frame, currentContact)); // TODO currentContactからmoveContactを除くこと
+            std::vector<std::shared_ptr<Contact>> tmpContacts;
+            for (int i=0;i<currentContact.size();i++) {
+              std::shared_ptr<Contact> tmpContact = std::make_shared<Contact>();
+              tmpContact->name = currentContact[i]->name;
+              tmpContact->link1 = currentContact[i]->link1;
+              tmpContact->localPose1 = currentContact[i]->localPose1;
+              tmpContact->link2 = currentContact[i]->link2;
+              tmpContact->localPose2 = currentContact[i]->localPose2;
+              tmpContacts.push_back(tmpContact);
+            }
+            path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > >(frame, tmpContacts)); // TODO currentContactからmoveContactを除くこと
             global_inverse_kinematics_solver::link2Frame(param->variables, lastLandingFrame);
             global_inverse_kinematics_solver::frame2Link(frame, param->variables);
             param->robot->calcForwardKinematics(false);
@@ -421,7 +431,17 @@ namespace wholebodycontact_locomotion_planner{
             getchar();
           }
 
-          path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (lastLandingFrame, currentContact)); // TODO currentContactからmoveContactを除くこと
+          std::vector<std::shared_ptr<Contact>> tmpContacts;
+          for (int i=0;i<currentContact.size();i++) {
+            std::shared_ptr<Contact> tmpContact = std::make_shared<Contact>();
+            tmpContact->name = currentContact[i]->name;
+            tmpContact->link1 = currentContact[i]->link1;
+            tmpContact->localPose1 = currentContact[i]->localPose1;
+            tmpContact->link2 = currentContact[i]->link2;
+            tmpContact->localPose2 = currentContact[i]->localPose2;
+            tmpContacts.push_back(tmpContact);
+          }
+          path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > >(lastLandingFrame, tmpContacts)); // TODO currentContactからmoveContactを除くこと
         } else if (param->useSlide){ // detach-attachでは1stepも進めない場合
           path.clear();
           global_inverse_kinematics_solver::frame2Link(pathInitialFrame, param->variables);
@@ -451,7 +471,17 @@ namespace wholebodycontact_locomotion_planner{
 
             std::vector<double> frame;
             global_inverse_kinematics_solver::link2Frame(param->variables, frame);
-            path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (frame, currentContact));
+            std::vector<std::shared_ptr<Contact>> tmpContacts;
+            for (int i=0;i<currentContact.size();i++) {
+              std::shared_ptr<Contact> tmpContact = std::make_shared<Contact>();
+              tmpContact->name = currentContact[i]->name;
+              tmpContact->link1 = currentContact[i]->link1;
+              tmpContact->localPose1 = currentContact[i]->localPose1;
+              tmpContact->link2 = currentContact[i]->link2;
+              tmpContact->localPose2 = currentContact[i]->localPose2;
+              tmpContacts.push_back(tmpContact);
+            }
+            path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (frame, tmpContacts));
           }
           idx = std::min(idx, subgoalIdQueue.back());
           // TODO
@@ -569,7 +599,17 @@ namespace wholebodycontact_locomotion_planner{
 
           std::vector<double> frame;
           global_inverse_kinematics_solver::link2Frame(param->variables, frame);
-          outputPath.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (frame, currentContact));
+          std::vector<std::shared_ptr<Contact>> tmpContacts;
+          for (int i=0;i<currentContact.size();i++) {
+            std::shared_ptr<Contact> tmpContact = std::make_shared<Contact>();
+            tmpContact->name = currentContact[i]->name;
+            tmpContact->link1 = currentContact[i]->link1;
+            tmpContact->localPose1 = currentContact[i]->localPose1;
+            tmpContact->link2 = currentContact[i]->link2;
+            tmpContact->localPose2 = currentContact[i]->localPose2;
+            tmpContacts.push_back(tmpContact);
+          }
+          outputPath.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (frame, tmpContacts));
           if(param->debugLevel >= 3){
             if(param->viewer){
               param->viewer->drawObjects();
@@ -588,7 +628,20 @@ namespace wholebodycontact_locomotion_planner{
 
           std::vector<double> frame;
           global_inverse_kinematics_solver::link2Frame(param->variables, frame);
-          outputPath.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (frame, currentContact)); // TODO currentContactからattachContactを除くこと
+
+          {
+            std::vector<std::shared_ptr<Contact>> tmpContacts;
+            for (int i=0;i<currentContact.size();i++) {
+              std::shared_ptr<Contact> tmpContact = std::make_shared<Contact>();
+              tmpContact->name = currentContact[i]->name;
+              tmpContact->link1 = currentContact[i]->link1;
+              tmpContact->localPose1 = currentContact[i]->localPose1;
+              tmpContact->link2 = currentContact[i]->link2;
+              tmpContact->localPose2 = currentContact[i]->localPose2;
+              tmpContacts.push_back(tmpContact);
+            }
+            outputPath.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (frame, tmpContacts)); // TODO currentContactからattachContactを除くこと
+          }
           if(param->debugLevel >= 3){
             if(param->viewer){
               param->viewer->drawObjects();
@@ -608,7 +661,19 @@ namespace wholebodycontact_locomotion_planner{
           }
           currentContact.insert(currentContact.end(), attachContact.begin(), attachContact.end());
 
-          outputPath.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (frame, currentContact)); // TODO currentContactからattachContactを除くこと
+          {
+            std::vector<std::shared_ptr<Contact>> tmpContacts;
+            for (int i=0;i<currentContact.size();i++) {
+              std::shared_ptr<Contact> tmpContact = std::make_shared<Contact>();
+              tmpContact->name = currentContact[i]->name;
+              tmpContact->link1 = currentContact[i]->link1;
+              tmpContact->localPose1 = currentContact[i]->localPose1;
+              tmpContact->link2 = currentContact[i]->link2;
+              tmpContact->localPose2 = currentContact[i]->localPose2;
+              tmpContacts.push_back(tmpContact);
+            }
+            outputPath.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > (frame, tmpContacts)); // TODO currentContactからattachContactを除くこと
+          }
           if(param->debugLevel >= 3){
             if(param->viewer){
               param->viewer->drawObjects();
