@@ -41,6 +41,7 @@ namespace wholebodycontact_locomotion_planner{
     bool useNearestLocalPos = true; // CBPath時に出てきた最近接リンク座標を接触ローカル位置に置き換えるかどうか‥trueならswingした後は最近接座標をローカル位置にし、falseならずっと初期ローカル位置のまま‥
     bool useSlide = true;
     trajectory_optimizer::TOParam toParam;
+    std::vector<std::shared_ptr<Contact> > fixedContactPoints; // link1Poseのみ使う. この値が設定されていたら最近接点でなくこの値をguidePath時の初期リンク内接触点とする.
 
     WBLPParam() {
       goalWeight << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
