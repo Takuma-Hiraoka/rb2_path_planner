@@ -597,7 +597,7 @@ namespace wholebodycontact_locomotion_planner{
           frame2Nominals(guidePath[nextId].first, param->variables, nominals);
           if(!solveContactIK(param, currentContact, detachContact, nominals, IKState::DETACH_FIXED) && !(param->useSwing && solveContactIK(param, currentContact, detachContact, nominals, IKState::SWING))) {
             std::cerr << "cannot detach contact" << std::endl;
-            break;
+            return false;
           }
 
           // currentContactを更新
@@ -635,7 +635,7 @@ namespace wholebodycontact_locomotion_planner{
           frame2Nominals(guidePath[nextId].first, param->variables, nominals);
           if(!solveContactIK(param, currentContact, attachContact, nominals, (param->useSwing ? IKState::SWING : IKState::DETACH))) {
             std::cerr << "cannot pre attach contact" << std::endl;
-            break;
+            return false;
           }
 
           std::vector<double> frame;
@@ -662,7 +662,7 @@ namespace wholebodycontact_locomotion_planner{
           if(!solveContactIK(param, currentContact, attachContact, nominals, IKState::ATTACH)) {
             if(!solveContactIK(param, currentContact, attachContact, nominals, IKState::ATTACH_SEARCH)) {
               std::cerr << "cannot attach contact" << std::endl;
-              break;
+              return false;
             }
           }
           global_inverse_kinematics_solver::link2Frame(param->variables, frame);
