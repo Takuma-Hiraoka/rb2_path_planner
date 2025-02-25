@@ -545,7 +545,7 @@ namespace wholebodycontact_locomotion_planner{
             }
           } else { // 全ての接触がsubgoalIdQueueに達している
             subgoalIdQueue.pop_back();
-            moveCandidate.insert(moveCandidate.end(), moveCandidateQueue.back().begin(), moveCandidateQueue.back().end());
+            if (moveCandidateQueue.size() != 0) moveCandidate.insert(moveCandidate.end(), moveCandidateQueue.back().begin(), moveCandidateQueue.back().end());
             pathId = idx;
             if (subgoalIdQueue.size() == 0) break;
           }
