@@ -697,7 +697,8 @@ namespace wholebodycontact_locomotion_planner{
     return true;
   }
   std::unordered_map<std::string, std::vector<cnoid::Isometry3> >  createContactPoints(const std::shared_ptr<WBLPParam>& param,
-                                                                                       std::string contactFileName
+                                                                                       std::string contactFileName,
+                                                                                       double& resolution
                                                                                        ) {
     cnoid::YAMLReader reader;
     cnoid::MappingPtr node;
@@ -737,6 +738,7 @@ namespace wholebodycontact_locomotion_planner{
             prevLinkName = linkName;
             contactPointsBuf.clear();
           }
+          info->extract("radius", resolution);
           cnoid::Isometry3 sensor;
           // translation
           cnoid::ValueNodePtr translation_ = info->extract("translation");

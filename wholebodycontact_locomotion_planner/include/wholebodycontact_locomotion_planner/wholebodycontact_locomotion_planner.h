@@ -96,7 +96,8 @@ namespace wholebodycontact_locomotion_planner{
                  std::vector<std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > > >& outputPath // angle, contact
                  );
   std::unordered_map<std::string, std::vector<cnoid::Isometry3> >  createContactPoints(const std::shared_ptr<WBLPParam>& param,
-                                                                                       std::string contactFileName);
+                                                                                       std::string contactFileName,
+                                                                                       double& resolution);
 }
 
 #endif
