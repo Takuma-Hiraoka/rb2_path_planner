@@ -8,7 +8,10 @@ namespace wholebodycontact_locomotion_planner{
                       const std::vector<std::shared_ptr<Contact> >& stopContacts,
                       const std::vector<std::shared_ptr<Contact> >& nextContacts,
                       const std::vector<std::shared_ptr<ik_constraint2::IKConstraint> >& nominals,
-                      const IKState ikState) {
+                      const IKState ikState,
+                      const std::shared_ptr<std::vector<std::vector<double> > > path
+                      ) {
+    std::shared_ptr<std::vector<std::vector<double> > > tmpPath = std::make_shared<std::vector<std::vector<double> > >();
     std::vector<cnoid::LinkPtr> variables;
     for (int i=0;i<param->variables.size(); i++) {
       variables.push_back(param->variables[i]);
@@ -194,7 +197,8 @@ namespace wholebodycontact_locomotion_planner{
     solved  =  prioritized_inverse_kinematics_solver2::solveIKLoop(variables,
                                                                    constraints,
                                                                    prevTasks,
-                                                                   param->pikParam
+                                                                   param->pikParam,
+                                                                   tmpPath
                                                                    );
     if (!solved && // 単に勾配を降りるだけで解けるなら大域探索は行わない
         ((!param->useSwing && (ikState==IKState::DETACH)) || // この後swingで接触点探索を行うので大域探索はswingでやる
@@ -211,7 +215,6 @@ namespace wholebodycontact_locomotion_planner{
       param->gikParam.projectLink.resize(1);
       param->gikParam.projectLink[0] = nextContacts[0]->link1;
       param->gikParam.projectLocalPose = nextContacts[0]->localPose1;
-      std::shared_ptr<std::vector<std::vector<double> > > path;
       // 関節角度上下限を厳密に満たしていないと、omplのstart stateがエラーになるので
       for(int i=0;i<param->variables.size();i++){
         if(param->variables[i]->isRevoluteJoint() || param->variables[i]->isPrismaticJoint()) {
@@ -223,8 +226,15 @@ namespace wholebodycontact_locomotion_planner{
                                                           constraints2,
                                                           nominals,
                                                           param->gikParam,
-                                                          path);
+                                                          tmpPath);
     }
+
+    if (path != nullptr) {
+      path->clear();
+      if (param->useInterpolatePath) *path = *tmpPath;
+      else path->push_back(tmpPath->back());
+    }
+
     // for ( int i=0; i<constraints0.size(); i++ ) {
     //   std::cerr << "constraints0: "<< constraints0[i]->isSatisfied() << std::endl;
     // }

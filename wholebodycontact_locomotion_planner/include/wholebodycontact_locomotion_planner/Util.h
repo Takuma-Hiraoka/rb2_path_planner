@@ -22,7 +22,9 @@ namespace wholebodycontact_locomotion_planner{
                       const std::vector<std::shared_ptr<Contact> >& stopContact,
                       const std::vector<std::shared_ptr<Contact> >& nextContacts,
                       const std::vector<std::shared_ptr<ik_constraint2::IKConstraint> >& nominals,
-                      const IKState ikState);
+                      const IKState ikState,
+                      const std::shared_ptr<std::vector<std::vector<double> > > path
+                      );
   void calcLevelLinks(const cnoid::LinkPtr inputLink,
                       int level, // input
                       std::vector<cnoid::LinkPtr>& targetLinks // output

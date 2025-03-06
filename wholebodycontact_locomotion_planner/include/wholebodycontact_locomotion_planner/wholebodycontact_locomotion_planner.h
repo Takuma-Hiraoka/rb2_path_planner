@@ -40,6 +40,7 @@ namespace wholebodycontact_locomotion_planner{
     bool useSwingGIK = false; // TODO なぜか遅い
     bool useNearestLocalPos = true; // CBPath時に出てきた最近接リンク座標を接触ローカル位置に置き換えるかどうか‥trueならswingした後は最近接座標をローカル位置にし、falseならずっと初期ローカル位置のまま‥
     bool useSlide = true;
+    bool useInterpolatePath = false;
     trajectory_optimizer::TOParam toParam;
     std::vector<std::shared_ptr<Contact> > fixedContactPoints; // link1Poseのみ使う. この値が設定されていたら最近接点でなくこの値をguidePath時の初期リンク内接触点とする.
 
@@ -71,6 +72,7 @@ namespace wholebodycontact_locomotion_planner{
       gikParam.pikParam.we = 1e1; // 逆運動学が振動しないこと優先. 1e0だと不安定. 1e3だと大きすぎる
       gikParam.pikParam.wmax = 1e0; // 1e2程度にすると関節がめり込まなくなるが、ほとんど動かない.
       gikParam.pikParam.convergeThre = 5e-3;
+      pikParam.pathOutputLoop = 1;
 
       toParam.shortcutThre=4e-2;
       pikParam.checkFinalState=true;
