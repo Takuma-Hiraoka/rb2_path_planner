@@ -251,6 +251,10 @@ namespace wholebodycontact_locomotion_planner{
       global_inverse_kinematics_solver::frame2Link(guidePath[i].first, param->variables);
       param->robot->calcForwardKinematics(false);
       param->robot->calcCenterOfMass();
+      if(guidePath[i].second.size() == 0) {
+        std::cerr << "[solveCBStance] no contacts." << std::endl;
+        return false;
+      }
       if(!solveContactIK(param, std::vector<std::shared_ptr<Contact>>{}, guidePath[i].second, nominals, IKState::CONTACT_SEARCH, nullptr)) {
         if (!solveContactIK(param, std::vector<std::shared_ptr<Contact>>{}, guidePath[i].second, nominals, IKState::DETACH_SEARCH, nullptr)) {
           std::cerr << "[solveCBStance] failed." << std::endl;
@@ -321,6 +325,10 @@ namespace wholebodycontact_locomotion_planner{
           std::cerr << "subgoalIdQueue : [";
           for (int i=0;i<subgoalIdQueue.size();i++) std::cerr << subgoalIdQueue[i] << " ";
           std::cerr << "]"<< std::endl;
+        }
+        if (moveCandidate.size() == 0) {
+          std::cerr << "no move candidate" << std::endl;
+          return false;
         }
 
         // moveCandidateのうち、guidePath[subgoalIdQueue.back()]と比較して最も離れているcontactを一つ選ぶ
