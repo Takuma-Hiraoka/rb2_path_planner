@@ -304,7 +304,8 @@ namespace wholebodycontact_locomotion_planner_sample{
 
     // bodyContactConstraint
     std::string contactFileName = ros::package::getPath("wholebodycontact_locomotion_planner_sample") + "/config/sample_config.yaml";
-    std::unordered_map<std::string, std::vector<cnoid::Isometry3> > contactPoints = wholebodycontact_locomotion_planner::createContactPoints(param, contactFileName);
+    double resolution;
+    std::unordered_map<std::string, std::vector<cnoid::Isometry3> > contactPoints = wholebodycontact_locomotion_planner::createContactPoints(param, contactFileName, resolution);
     for (int i=0; i<param->robot->numLinks(); i++) {
       if(std::find(contactableLinkNames.begin(),contactableLinkNames.end(),param->robot->link(i)->name()) == contactableLinkNames.end()) continue;
       cnoid::LinkPtr variable = new cnoid::Link();
@@ -314,11 +315,11 @@ namespace wholebodycontact_locomotion_planner_sample{
       std::shared_ptr<ik_constraint2_body_contact::BodyContactConstraint> constraint = std::make_shared<ik_constraint2_body_contact::BodyContactConstraint>();
       constraint->A_link() = param->robot->link(i);
       constraint->B_link() = nullptr;
-      constraint->contact_pos_link() = variable;
-      constraint->contact_pos_link()->T() = constraint->A_localpos();
-      constraint->contact_pos_body() = body;
+      constraint->A_contact_pos_link() = variable;
+      constraint->A_contact_pos_link()->T() = constraint->A_localpos();
+      constraint->A_contact_pos_body() = body;
       for(std::unordered_map<std::string, std::vector<cnoid::Isometry3> >::const_iterator it=contactPoints.begin(); it!=contactPoints.end(); it++){
-        if (it->first==param->robot->link(i)->name()) constraint->setContactPoints(it->second, 0.05, 16);
+        if (it->first==param->robot->link(i)->name()) constraint->A_setContactPoints(it->second, 0.05, 16);
       }
       constraint->contactSearchLimit() = 0.01; // 大きすぎると振動してしまうので注意
       constraint->precision() = 0.03;

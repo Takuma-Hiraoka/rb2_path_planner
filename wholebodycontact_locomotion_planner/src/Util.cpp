@@ -97,9 +97,9 @@ namespace wholebodycontact_locomotion_planner{
               constraint->B_localpos() = nextContacts[i]->localPose2;
               if ((ikState == IKState::SWING) || (ikState == IKState::CONTACT_SEARCH)) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.02); // 0.03だけ離す
               constraint->eval_localR() = constraint->B_localpos().linear();
-              if (constraint->contact_pos_link()){
-                variables.push_back(constraint->contact_pos_link());
-                constraint->contact_pos_link()->T() = constraint->A_localpos();
+              if (constraint->A_contact_pos_link()){
+                variables.push_back(constraint->A_contact_pos_link());
+                constraint->A_contact_pos_link()->T() = constraint->A_localpos();
                 std::vector<double> dqWeight = std::vector<double>(6,1);
                 std::copy(dqWeight.begin(), dqWeight.end(), std::back_inserter(param->pikParam.dqWeight));
                 std::copy(dqWeight.begin(), dqWeight.end(), std::back_inserter(param->gikParam.pikParam.dqWeight));
