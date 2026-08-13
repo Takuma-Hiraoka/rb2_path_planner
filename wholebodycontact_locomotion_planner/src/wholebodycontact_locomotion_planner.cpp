@@ -39,10 +39,10 @@ namespace wholebodycontact_locomotion_planner{
     std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints;
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints0;
     {
-      // pitch > 0
+      // pitch < 90
       std::shared_ptr<ik_constraint2::RegionConstraint> constraint = std::make_shared<ik_constraint2::RegionConstraint>();
       constraint->A_link() = param->robot->rootLink();
-      constraint->A_localpos().translation() = cnoid::Vector3(0.1,0.0,0.0);
+      constraint->A_localpos().translation() = cnoid::Vector3(0.0,0.0,-0.1);
       constraint->B_link() = param->robot->rootLink();
       constraint->eval_link() = nullptr;
       constraint->weightR().setZero();
@@ -55,11 +55,12 @@ namespace wholebodycontact_locomotion_planner{
       //constraint->debugLevel() = 2;
       constraints0.push_back(constraint);
     }
+    if(param->useRootOrientationConstraints) {
     {
-      // pitch < 90
+      // pitch > 0
       std::shared_ptr<ik_constraint2::RegionConstraint> constraint = std::make_shared<ik_constraint2::RegionConstraint>();
       constraint->A_link() = param->robot->rootLink();
-      constraint->A_localpos().translation() = cnoid::Vector3(0.0,0.0,-0.1);
+      constraint->A_localpos().translation() = cnoid::Vector3(0.1,0.0,0.0);
       constraint->B_link() = param->robot->rootLink();
       constraint->eval_link() = nullptr;
       constraint->weightR().setZero();
@@ -83,6 +84,7 @@ namespace wholebodycontact_locomotion_planner{
       constraint->weight() << 0.0, 0.0, 1.0, 0.0, 0.0, 0.0;
       //constraint->debugLevel() = 2;
       constraints0.push_back(constraint);
+    }
     }
     constraints.push_back(constraints0);
 
@@ -141,7 +143,6 @@ namespace wholebodycontact_locomotion_planner{
     }
 
     param->gikRootParam.projectLink.push_back(param->robot->rootLink());
-    param->gikRootParam.projectCellSize = 0.2;
     std::shared_ptr<std::vector<std::vector<double> > > path = std::make_shared<std::vector<std::vector<double> > >();
     if(!global_inverse_kinematics_solver::solveGIK(param->variables,
                                                    constraints,
@@ -154,14 +155,19 @@ namespace wholebodycontact_locomotion_planner{
       std::cerr << "solveCBPath failed" << std::endl;
       return false;
     }
-
     // 関節角軌道が暴れているので軌道最適化
     if (param->OptimizeTrajectory) {
+      const std::vector<double> firstFrame = path->front();
+      const std::vector<double> lastFrame = path->back();
       param->toParam.pikParam.convergeThre=param->gikRootParam.pikParam.convergeThre * path->size();
       trajectory_optimizer::solveTO(param->variables,
                                     constraints,
                                     param->toParam,
                                     path);
+      // The trajectory optimizer smooths all frames and can numerically move
+      // the endpoints.  Preserve the start and the goal selected by GIK.
+      path->front() = firstFrame;
+      path->back() = lastFrame;
     }
 
     outputPath.resize(path->size());

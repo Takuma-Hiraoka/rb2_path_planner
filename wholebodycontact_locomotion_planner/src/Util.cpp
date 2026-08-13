@@ -2,6 +2,7 @@
 #include <cnoid/MeshExtractor>
 #include <choreonoid_qhull/choreonoid_qhull.h>
 #include <ik_constraint2_scfr/SlideScfrConstraint.h>
+#include <cstdlib>
 
 namespace wholebodycontact_locomotion_planner{
   bool solveContactIK(const std::shared_ptr<WBLPParam>& param,
@@ -95,7 +96,7 @@ namespace wholebodycontact_locomotion_planner{
               }
               constraint->B_link() = nextContacts[i]->link2;
               constraint->B_localpos() = nextContacts[i]->localPose2;
-              if ((ikState == IKState::SWING) || (ikState == IKState::CONTACT_SEARCH)) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.02); // 0.03だけ離す
+              if ((ikState == IKState::SWING) || (ikState == IKState::CONTACT_SEARCH)) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.01); // 0.03だけ離す
               constraint->eval_localR() = constraint->B_localpos().linear();
               if (constraint->A_contact_pos_link()){
                 variables.push_back(constraint->A_contact_pos_link());
@@ -145,7 +146,7 @@ namespace wholebodycontact_locomotion_planner{
           }
           if ((ikState==IKState::DETACH) ||
               (ikState==IKState::DETACH_FIXED) ||
-              (ikState==IKState::DETACH_SEARCH)) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.02);
+              (ikState==IKState::DETACH_SEARCH)) constraint->B_localpos().translation() += nextContacts[i]->localPose2.rotation() * cnoid::Vector3(0,0,0.01);
           if ((ikState==IKState::ATTACH) ||
               (ikState==IKState::ATTACH_FIXED) ||
               (ikState==IKState::SLIDE)) calcIgnoreBoundingBox(param->constraints, nextContacts[i], 3);
@@ -173,10 +174,10 @@ namespace wholebodycontact_locomotion_planner{
                 poses.push_back(stopContacts[j]->link1->T() * constraint->A_localpos());
                 As.emplace_back(0,6);
                 bs.emplace_back(0);
-                Cs.push_back(stopContacts[i]->C);
-                dls.push_back(stopContacts[i]->dl);
-                dus.push_back(stopContacts[i]->du);
-                calcIgnoreBoundingBox(param->constraints, stopContacts[i], 3);
+                Cs.push_back(stopContacts[j]->C);
+                dls.push_back(stopContacts[j]->dl);
+                dus.push_back(stopContacts[j]->du);
+                calcIgnoreBoundingBox(param->constraints, stopContacts[j], 3);
               }
             }
           }
@@ -231,8 +232,43 @@ namespace wholebodycontact_locomotion_planner{
 
     if (path != nullptr) {
       path->clear();
-      if (param->useInterpolatePath) *path = *tmpPath;
-      else path->push_back(tmpPath->back());
+      if (!tmpPath->empty()) {
+        if (param->useInterpolatePath) *path = *tmpPath;
+        else path->push_back(tmpPath->back());
+      }
+    }
+
+    if (!solved && std::getenv("UNITREE_C_WCP_DEBUG_IK")) {
+      std::cerr << "[solveContactIK] failed state=" << static_cast<int>(ikState)
+                << " stopContacts=" << stopContacts.size()
+                << " nextContacts=" << nextContacts.size() << std::endl;
+      const std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > debugGroups{
+        constraints0, constraints1, constraints2, nominals};
+      for(size_t group = 0; group < debugGroups.size(); ++group){
+        for(size_t i = 0; i < debugGroups[group].size(); ++i){
+          const auto& constraint = debugGroups[group][i];
+          constraint->updateBounds();
+          if(constraint->isSatisfied()){
+            continue;
+          }
+          std::cerr << "  unsatisfied group=" << group
+                    << " index=" << i
+                    << " type=" << typeid(*constraint).name()
+                    << " distance=" << constraint->distance()
+                    << " margin=" << constraint->margin();
+          const auto collision =
+            std::dynamic_pointer_cast<ik_constraint2::CollisionConstraint>(constraint);
+          if(collision && collision->A_link()){
+            std::cerr << " A_link=" << collision->A_link()->name();
+          }
+          const auto position =
+            std::dynamic_pointer_cast<ik_constraint2::PositionConstraint>(constraint);
+          if(position && position->A_link()){
+            std::cerr << " A_link=" << position->A_link()->name();
+          }
+          std::cerr << std::endl;
+        }
+      }
     }
 
     // for ( int i=0; i<constraints0.size(); i++ ) {
