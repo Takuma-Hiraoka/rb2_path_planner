@@ -3,7 +3,7 @@
 #include <cnoid/YAMLReader>
 
 namespace wholebodycontact_locomotion_planner{
-  inline void frame2Nominals(const std::vector<double>& frame, const std::vector<cnoid::LinkPtr>& links, std::vector<std::shared_ptr<ik_constraint2::IKConstraint> >& nominals) {
+  inline void frame2Nominals(const std::vector<double>& frame, const std::vector<cnoid::LinkPtr>& links, std::vector<std::shared_ptr<ik_constraint2::IKConstraint> >& nominals, double rootTranslationWeight) {
     nominals.clear();
     unsigned int i=0;
     for(int l=0;l<links.size();l++){
@@ -23,7 +23,8 @@ namespace wholebodycontact_locomotion_planner{
                                                               frame[i+4],
                                                               frame[i+5]).toRotationMatrix();
         constraint->precision() = 1e10; // always satisfied
-        constraint->weight() << 3.0, 3.0, 3.0, 3.0, 3.0, 3.0;
+        constraint->weight() << rootTranslationWeight, rootTranslationWeight,
+          rootTranslationWeight, 3.0, 3.0, 3.0;
         i+=7;
       }
     }
@@ -38,7 +39,8 @@ namespace wholebodycontact_locomotion_planner{
 
     std::vector<std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > > constraints;
     std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > constraints0;
-    {
+    if(param->useRootOrientationConstraints &&
+       param->useRootPitchUpperConstraint) {
       // pitch < 90
       std::shared_ptr<ik_constraint2::RegionConstraint> constraint = std::make_shared<ik_constraint2::RegionConstraint>();
       constraint->A_link() = param->robot->rootLink();
@@ -52,11 +54,10 @@ namespace wholebodycontact_locomotion_planner{
       constraint->dl()[0] = -1e10;
       constraint->du().resize(1);
       constraint->du()[0] = 0.0;
-      //constraint->debugLevel() = 2;
       constraints0.push_back(constraint);
     }
-    if(param->useRootOrientationConstraints) {
-    {
+    if(param->useRootOrientationConstraints &&
+       param->useRootPitchLowerConstraint) {
       // pitch > 0
       std::shared_ptr<ik_constraint2::RegionConstraint> constraint = std::make_shared<ik_constraint2::RegionConstraint>();
       constraint->A_link() = param->robot->rootLink();
@@ -73,7 +74,8 @@ namespace wholebodycontact_locomotion_planner{
       //constraint->debugLevel() = 2;
       constraints0.push_back(constraint);
     }
-    {
+    if(param->useRootOrientationConstraints &&
+       param->useRootRollConstraint) {
       // roll = 0
       std::shared_ptr<ik_constraint2::PositionConstraint> constraint = std::make_shared<ik_constraint2::PositionConstraint>();
       constraint->A_link() = param->robot->rootLink();
@@ -82,9 +84,7 @@ namespace wholebodycontact_locomotion_planner{
       constraint->B_localpos().translation() = cnoid::Vector3(0.0,-0.1,0.0);
       constraint->eval_link() = nullptr;
       constraint->weight() << 0.0, 0.0, 1.0, 0.0, 0.0, 0.0;
-      //constraint->debugLevel() = 2;
       constraints0.push_back(constraint);
-    }
     }
     constraints.push_back(constraints0);
 
@@ -253,7 +253,7 @@ namespace wholebodycontact_locomotion_planner{
     outputPath.clear();
     for (int i=0; i<guidePath.size(); i++) {
       std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
-      frame2Nominals(guidePath[i].first, param->variables, nominals);
+      frame2Nominals(guidePath[i].first, param->variables, nominals, param->nominalRootTranslationWeight);
       global_inverse_kinematics_solver::frame2Link(guidePath[i].first, param->variables);
       param->robot->calcForwardKinematics(false);
       param->robot->calcCenterOfMass();
@@ -397,7 +397,7 @@ namespace wholebodycontact_locomotion_planner{
         std::vector<std::vector<double> > lastLandingFrames;
         for (idx=pathId; idx<=subgoalIdQueue.back(); idx++) {
           std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
-          frame2Nominals(guidePath[idx].first, param->variables, nominals);
+          frame2Nominals(guidePath[idx].first, param->variables, nominals, param->nominalRootTranslationWeight);
           std::shared_ptr<std::vector<std::vector<double> > > frames = std::make_shared<std::vector<std::vector<double> > >();
           std::shared_ptr<std::vector<std::vector<double> > > tmpFrames = std::make_shared<std::vector<std::vector<double> > >();
           std::vector<cnoid::Isometry3> prevNextContactLocalPose1s;
@@ -477,7 +477,7 @@ namespace wholebodycontact_locomotion_planner{
           // 選ばれたcontactだけ、slideでIKが解けなくなるまでguidePathを進める
           for (idx=pathId; idx<=subgoalIdQueue.back(); idx++) {
             std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
-            frame2Nominals(guidePath[idx].first, param->variables, nominals);
+            frame2Nominals(guidePath[idx].first, param->variables, nominals, param->nominalRootTranslationWeight);
             std::vector<std::shared_ptr<Contact> > moveContact;
             for (int i=0; i<guidePath[idx].second.size(); i++) {
               if (std::find(moveContactLinks.begin(), moveContactLinks.end(), guidePath[idx].second[i]->name) != moveContactLinks.end()) moveContact.push_back(guidePath[idx].second[i]);
@@ -608,7 +608,7 @@ namespace wholebodycontact_locomotion_planner{
         if (detachContact.size() != 0) {
           // まず接触を離す
           std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
-          frame2Nominals(guidePath[nextId].first, param->variables, nominals);
+          frame2Nominals(guidePath[nextId].first, param->variables, nominals, param->nominalRootTranslationWeight);
           std::shared_ptr<std::vector<std::vector<double> > > frames = std::make_shared<std::vector<std::vector<double> > >();
           if(!solveContactIK(param, currentContact, detachContact, nominals, IKState::DETACH_FIXED, frames) && !(param->useSwing && solveContactIK(param, currentContact, detachContact, nominals, IKState::SWING, frames))) {
             std::cerr << "cannot detach contact" << std::endl;
@@ -645,7 +645,7 @@ namespace wholebodycontact_locomotion_planner{
         if (attachContact.size() != 0) {
           // 接触を追加する
           std::vector<std::shared_ptr<ik_constraint2::IKConstraint> > nominals;
-          frame2Nominals(guidePath[nextId].first, param->variables, nominals);
+          frame2Nominals(guidePath[nextId].first, param->variables, nominals, param->nominalRootTranslationWeight);
           std::shared_ptr<std::vector<std::vector<double> > > frames = std::make_shared<std::vector<std::vector<double> > >();
           if(!solveContactIK(param, currentContact, attachContact, nominals, (param->useSwing ? IKState::SWING : IKState::DETACH), frames)) {
             std::cerr << "cannot pre attach contact" << std::endl;

@@ -20,6 +20,7 @@ namespace wholebodycontact_locomotion_planner{
     double envCollisionDefaultTolerance = 0.04; // 環境干渉回避制約. 触れる直前のリンクはこれより小さい値に変える.
     double envCollisionDefaultPrecision = 0.03;
     double initialBreakHeight = 0.05; // はじめに今触れている接触を離す際の距離.
+    double nominalRootTranslationWeight = 3.0;
     cnoid::Vector6 goalWeight;
     cnoid::Vector6 positionConstraintWeight;
     std::shared_ptr<choreonoid_viewer::Viewer> viewer = nullptr;
@@ -44,6 +45,9 @@ namespace wholebodycontact_locomotion_planner{
     // Keep the root link upright while generating the contact-body guide path.
     // Rolling tasks intentionally rotate the root and must disable this.
     bool useRootOrientationConstraints = true;
+    bool useRootPitchUpperConstraint = true;
+    bool useRootPitchLowerConstraint = true;
+    bool useRootRollConstraint = true;
     bool useSelfCollisionConstraints = true;
     trajectory_optimizer::TOParam toParam;
     std::vector<std::shared_ptr<Contact> > fixedContactPoints; // link1Poseのみ使う. この値が設定されていたら最近接点でなくこの値をguidePath時の初期リンク内接触点とする.
