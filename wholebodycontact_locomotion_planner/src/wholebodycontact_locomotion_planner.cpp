@@ -417,6 +417,13 @@ namespace wholebodycontact_locomotion_planner{
           if (solveContactIK(param, currentContact, moveContact, nominals, idx==pathId ? IKState::ATTACH_FIXED : IKState::ATTACH, tmpFrames) || solveContactIK(param, currentContact, moveContact, nominals, idx==pathId ? IKState::ATTACH_FIXED : IKState::ATTACH_SEARCH, tmpFrames)) { // 着地も可能
             std::vector<std::shared_ptr<Contact>> tmpContacts;
             for (int i=0;i<currentContact.size();i++) {
+              // frames contains only the successful DETACH/SWING portion.
+              // Keep currentContact unchanged for planning, but do not mark
+              // the contacts being moved as active in the output path.
+              if (std::find(moveContactLinks.begin(), moveContactLinks.end(),
+                            currentContact[i]->name) != moveContactLinks.end()) {
+                continue;
+              }
               std::shared_ptr<Contact> tmpContact = std::make_shared<Contact>();
               tmpContact->name = currentContact[i]->name;
               tmpContact->link1 = currentContact[i]->link1;
@@ -425,7 +432,7 @@ namespace wholebodycontact_locomotion_planner{
               tmpContact->localPose2 = currentContact[i]->localPose2;
               tmpContacts.push_back(tmpContact);
             }
-            for (int i=0;i<frames->size();i++) path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > >(frames->at(i), tmpContacts)); // TODO currentContactからmoveContactを除くこと
+            for (int i=0;i<frames->size();i++) path.push_back(std::pair<std::vector<double>, std::vector<std::shared_ptr<Contact> > >(frames->at(i), tmpContacts));
             lastLandingFrames = *tmpFrames;
             global_inverse_kinematics_solver::frame2Link(frames->back(), param->variables);
             param->robot->calcForwardKinematics(false);
@@ -513,6 +520,34 @@ namespace wholebodycontact_locomotion_planner{
           // TODO
           if(idx > pathId) {
           } else { // detach-attachでもslideでも動けない
+            // This contact may be a poor first choice even though another
+            // contact can make progress toward the same subgoal.  Restore the
+            // robot state from before this attempt, remove only the failed
+            // contact group, and let the outer contact iteration choose the
+            // next candidate.
+            global_inverse_kinematics_solver::frame2Link(
+              pathInitialFrame, param->variables);
+            param->robot->calcForwardKinematics(false);
+            param->robot->calcCenterOfMass();
+            if(moveCandidate.size() > moveContactIds.size()){
+              std::vector<std::shared_ptr<Contact> > failedMoveContacts;
+              for(const int id : moveContactIds){
+                failedMoveContacts.push_back(moveCandidate[id]);
+              }
+              for(const auto& failedContact : failedMoveContacts){
+                const auto candidate = std::find(
+                  moveCandidate.begin(), moveCandidate.end(), failedContact);
+                if(candidate != moveCandidate.end()) moveCandidate.erase(candidate);
+              }
+              if(param->debugLevel >= 1){
+                std::cerr << "[solveWBLP] cannot move contact group; try next candidate:";
+                for(const auto& failedContact : failedMoveContacts){
+                  std::cerr << " " << failedContact->name;
+                }
+                std::cerr << std::endl;
+              }
+              continue;
+            }
             std::cerr << "cannot move contact" << std::endl;
             return false;
           }
